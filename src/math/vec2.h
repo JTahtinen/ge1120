@@ -14,13 +14,13 @@ struct Vec2
     float dot(const Vec2 other) const;
     bool equals(const Vec2 other) const;
 
-    Vec2 operator+(const Vec2 other);
+    Vec2 operator+(const Vec2 other) const;
     Vec2& operator+=(const Vec2 other);
-    Vec2 operator-(const Vec2 other);
+    Vec2 operator-(const Vec2 other) const;
     Vec2 &operator-=(const Vec2 other);
-    Vec2 operator*(float value);
+    Vec2 operator*(float value) const;
     Vec2 &operator*=(float value);
-    float operator*(const Vec2 other);
-    bool operator==(const Vec2 other);
-    bool operator!=(const Vec2 other);
+    float operator*(const Vec2 other) const;
+    bool operator==(const Vec2 other) const;
+    bool operator!=(const Vec2 other) const;
 };

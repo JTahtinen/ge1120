@@ -6,11 +6,13 @@
 
 Game::Game()
 {
-    numEntities = 0;
-    player = spawnEntity(Vec2());
+    numActors = 0;
+
+    player = spawnActor(Vec2());
+    camera.pos = player->entity.pos;
     for (int i = 0; i < 3; ++i)
     {
-        spawnEntity(Vec2(-0.7f + i * 0.4f, 0));
+        spawnActor(Vec2(-0.7f + i * 0.4f, 0));
     }
     worldW = 5;
     worldH = 3;
@@ -21,47 +23,49 @@ Game::Game()
     }
 }
 
-Entity *Game::spawnEntity(Vec2 pos)
+Actor *Game::spawnActor(Vec2 pos)
 {
-    if (numEntities >= MAX_GAME_ENTITIES)
+    if (numActors >= MAX_GAME_ENTITIES)
     {
-        std::cout << "[WARNING] Could not spawn entity - Limit reached!" << std::endl;
+        std::cout << "[WARNING] Could not spawn actor - Limit reached!" << std::endl;
         return nullptr;
     }
-    Entity *e = &entityPool[numEntities];
-    e->pos = pos;
+    Actor *e = &actorPool[numActors];
+    e->entity.pos = pos;
     e->texture = entityTexture;
     e->vao = entityVAO;
     e->speed = 0.001f;
-    entities[numEntities++] = e;
+    actors[numActors++] = e;
     return e;
 }
 
 void Game::update()
 {
-    player->vel *= 0;
+    player->entity.vel *= 0;
     if (g_input.isKeyPressed(KEY_A))
     {
-        player->vel.x = -1.0f * player->speed;
+        player->entity.vel.x = -1.0f * player->speed;
     }
     if (g_input.isKeyPressed(KEY_D))
     {
-        player->vel.x = 1.0f * player->speed;
+        player->entity.vel.x = 1.0f * player->speed;
     }
     if (g_input.isKeyPressed(KEY_W))
     {
-        player->vel.y = 1.0f * player->speed;
+        player->entity.vel.y = 1.0f * player->speed;
     }
     if (g_input.isKeyPressed(KEY_S))
     {
-        player->vel.y = -1.0f * player->speed;
+        player->entity.vel.y = -1.0f * player->speed;
     }
 
-    for (int i = 0; i < numEntities; ++i)
+    for (int i = 0; i < numActors; ++i)
     {
-        Entity *e = entities[i];
-        e->pos += e->vel;
+        Actor *e = actors[i];
+        e->entity.pos += e->entity.vel;
     }
+
+    camera.pos = player->entity.pos;
 }
 
 void Game::render() const
@@ -70,16 +74,16 @@ void Game::render() const
     {
         for (int x = 0; x < worldW; ++x)
         {
-            g_renderer.renderVAO(entityVAO, tileMap[x + y * worldW].texture, Vec2(-0.75f + x * 0.2f, y * 0.2f));
+            g_renderer.renderVAO(entityVAO, tileMap[x + y * worldW].texture, Vec2((x * 0.2f) - camera.pos.x, (y * 0.2f) - camera.pos.y));
         }
     }
-    for (int i = 0; i < numEntities; ++i)
+    for (int i = 0; i < numActors; ++i)
     {
-        drawEntity(entities[i]);
+        drawActor(actors[i]);
     }
 }
 
-void Game::drawEntity(Entity *e) const
+void Game::drawActor(Actor *e) const
 {
-    g_renderer.renderVAO(e->vao, e->texture, e->pos);
+    g_renderer.renderVAO(e->vao, e->texture, e->entity.pos - camera.pos);
 }

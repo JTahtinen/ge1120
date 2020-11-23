@@ -4,9 +4,14 @@ class Texture;
 
 struct Entity
 {
-    unsigned int vao;
-    const Texture* texture;
     Vec2 pos;
     Vec2 vel;
+};
+
+struct Actor
+{
+    Entity entity;
+    unsigned int vao;
+    const Texture* texture;
     float speed;
 };

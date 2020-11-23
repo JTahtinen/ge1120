@@ -41,7 +41,7 @@ bool Vec2::equals(const Vec2 other) const
     return (x == other.x && y == other.y);
 }
 
-Vec2 Vec2::operator+(const Vec2 other)
+Vec2 Vec2::operator+(const Vec2 other) const
 {
     return this->add(other);
 }
@@ -53,7 +53,7 @@ Vec2& Vec2::operator+=(const Vec2 other)
     return *this;
 }
 
-Vec2 Vec2::operator-(const Vec2 other)
+Vec2 Vec2::operator-(const Vec2 other) const
 {
     return this->subst(other);
 }
@@ -65,7 +65,7 @@ Vec2 &Vec2::operator-=(const Vec2 other)
     return *this;
 }
 
-Vec2 Vec2::operator*(float value)
+Vec2 Vec2::operator*(float value) const
 {
     return this->mul(value);
 }
@@ -77,17 +77,17 @@ Vec2 &Vec2::operator*=(float value)
     return *this;
 }
 
-float Vec2::operator*(const Vec2 other)
+float Vec2::operator*(const Vec2 other) const
 {
     return this->dot(other);
 }
 
-bool Vec2::operator==(const Vec2 other)
+bool Vec2::operator==(const Vec2 other) const
 {
     return this->equals(other);
 }
 
-bool Vec2::operator!=(const Vec2 other)
+bool Vec2::operator!=(const Vec2 other) const
 {
     return !this->equals(other);
 }

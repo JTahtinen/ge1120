@@ -15,15 +15,17 @@ struct Game
     unsigned int worldW {0};
     unsigned int worldH {0};
     Tile* tileMap;
-    Entity* player;
-    Entity* entities[MAX_GAME_ENTITIES];
-    Entity entityPool[MAX_GAME_ENTITIES];
-    unsigned int numEntities;
+    Actor* player;
+    Actor* actors[MAX_GAME_ENTITIES];
+    Actor actorPool[MAX_GAME_ENTITIES];
+    unsigned int numActors;
+    Entity camera;
+
 
     Game();
     void update();
     void render() const;
     private:
-    void drawEntity(Entity* e) const;
-    Entity* spawnEntity(Vec2 pos);
+    void drawActor(Actor* e) const;
+    Actor* spawnActor(Vec2 pos);
 };
