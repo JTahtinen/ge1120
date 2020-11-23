@@ -3,12 +3,19 @@
 #include "../defs.h"
 #include "../graphics/shader.h"
 #include "../graphics/texture.h"
+#include "../math/mat3.h"
+#include "../math/math.h"
+
+static Mat3 translation;
+static Mat3 rotation;
 
 Game::Game()
 {
+    translation = Mat3::translation(Vec2(0.2f, 0));
+    rotation = Mat3::rotation(TO_RADIANS(0.5f));
     numActors = 0;
 
-    player = spawnActor(Vec2());
+    player = spawnActor(translation.mul(Vec2(0, 0)));
     camera.pos = player->entity.pos;
     for (int i = 0; i < 3; ++i)
     {
@@ -65,6 +72,7 @@ void Game::update()
         e->entity.pos += e->entity.vel;
     }
 
+    player->entity.pos = rotation.mul(player->entity.pos);
     camera.pos = player->entity.pos;
 }
 
