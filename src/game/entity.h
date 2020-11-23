@@ -6,6 +6,7 @@ struct Entity
 {
     Vec2 pos;
     Vec2 vel;
+    float rotation;
 };
 
 struct Actor

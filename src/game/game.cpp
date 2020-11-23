@@ -6,16 +6,13 @@
 #include "../math/mat3.h"
 #include "../math/math.h"
 
-static Mat3 translation;
-static Mat3 rotation;
 
 Game::Game()
 {
-    translation = Mat3::translation(Vec2(0.2f, 0));
-    rotation = Mat3::rotation(TO_RADIANS(0.5f));
     numActors = 0;
 
-    player = spawnActor(translation.mul(Vec2(0, 0)));
+    player = spawnActor(Vec2());
+    player->entity.rotation = 45.0f;
     camera.pos = player->entity.pos;
     for (int i = 0; i < 3; ++i)
     {
@@ -39,6 +36,7 @@ Actor *Game::spawnActor(Vec2 pos)
     }
     Actor *e = &actorPool[numActors];
     e->entity.pos = pos;
+    e->entity.rotation = 0.0f;
     e->texture = entityTexture;
     e->vao = entityVAO;
     e->speed = 0.001f;
@@ -72,7 +70,12 @@ void Game::update()
         e->entity.pos += e->entity.vel;
     }
 
-    player->entity.pos = rotation.mul(player->entity.pos);
+    player->entity.rotation += 0.05f;
+    if (player->entity.rotation > 360.0f)
+    {
+        player->entity.rotation -= 360.0f;
+    }
+    
     camera.pos = player->entity.pos;
 }
 
@@ -82,7 +85,7 @@ void Game::render() const
     {
         for (int x = 0; x < worldW; ++x)
         {
-            g_renderer.renderVAO(entityVAO, tileMap[x + y * worldW].texture, Vec2((x * 0.2f) - camera.pos.x, (y * 0.2f) - camera.pos.y));
+            g_renderer.renderVAO(entityVAO, tileMap[x + y * worldW].texture, Vec2((x * 0.2f) - camera.pos.x, (y * 0.2f) - camera.pos.y), 0);
         }
     }
     for (int i = 0; i < numActors; ++i)
@@ -93,5 +96,5 @@ void Game::render() const
 
 void Game::drawActor(Actor *e) const
 {
-    g_renderer.renderVAO(e->vao, e->texture, e->entity.pos - camera.pos);
+    g_renderer.renderVAO(e->vao, e->texture, e->entity.pos - camera.pos, e->entity.rotation);
 }

@@ -6,6 +6,6 @@ struct Renderer
 {
     Shader*     shader {nullptr};
     
-    void renderVAO(unsigned int vao, const Texture* texture, Vec2 offset);
+    void renderVAO(unsigned int vao, const Texture* texture, Vec2 offset, float rotation);
     void bind() const;
 };
