@@ -6,7 +6,7 @@
 #include "../math/math.h"
 #include <iostream>
 
-void Renderer::renderVAO(unsigned int vao, const Texture* texture, Vec2 offset, float rotation)
+void Renderer::renderVAO(unsigned int vao, const Texture* texture, const Mat3& model, const Mat3& view)
 {
     if (!shader)
     {
@@ -19,9 +19,8 @@ void Renderer::renderVAO(unsigned int vao, const Texture* texture, Vec2 offset, 
         return;
     }
     GLCALL(glBindVertexArray(vao));
-    shader->setUniform2f("u_Offset", offset.x, offset.y);
-    Mat3 rotationMatrix = Mat3::rotation(TO_RADIANS(rotation));
-    shader->setUniformMat3("u_Rotation", rotationMatrix);
+    shader->setUniformMat3("u_Model", model);
+    shader->setUniformMat3("u_View", view);
     texture->bind();
     GLCALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
 }
