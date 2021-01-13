@@ -62,17 +62,20 @@ static void updateWindow()
 static void updateGame()
 {
     
-    static float colorOffset = 0.3f;
+    static float red = 0.1f;
+    static float green = 0.12f;
+    static float blue = 0.15;
     static float colorDir = 1.0f;
-    if (colorOffset >= 0.4f)
+   /* if (colorOffset >= 0.4f)
         colorDir = -1.0f;
     else if (colorOffset <= 0.1f)
         colorDir = 1.0f;
 
     colorOffset += colorDir * 0.0005f;
+    */
    // drawEntity(thingyVao, thingyTexture, Vec2(0, 0));
     //drawEntity(player.vao, player.texture, player.pos);
-    shader->setUniform4f("u_Color", colorOffset, 0, 0, 1.0f);
+    shader->setUniform4f("u_Color", red, green, blue, 1.0f);
     //shader->setUniform2f("u_Offset", player.pos.x, player.pos.y);
     game->update();
     game->render();

@@ -3,8 +3,10 @@
 #include <SDL2/SDL_image.h>
 #include "../defs.h"
 
-Texture::Texture(unsigned int id)
-    : _id(id), _valid(true)
+Texture::Texture(unsigned int id, const std::string& filepath)
+    : _id(id) 
+    , _filepath(filepath)
+    , _valid(true)
 {
 }
 
@@ -47,5 +49,5 @@ Texture* Texture::loadTexture(const std::string &filepath)
         std::cout << "[ERROR] could not load texture: " << filepath << std::endl;
     }
     SDL_FreeSurface(texImage);
-    return new Texture(id);
+    return new Texture(id, filepath);
 }

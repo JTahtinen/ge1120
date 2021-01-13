@@ -13,25 +13,37 @@ struct Tile
     const Texture* texture;
 };
 
+struct TileRasterBuffer
+{
+    int* buffer;
+    int yLength;
+};
+
 #define MAX_GAME_ENTITIES (100)
 struct Game
 {
-    unsigned int worldW {0};
-    unsigned int worldH {0};
+    int worldW {0};
+    int worldH {0};
     Tile* tileMap;
     Actor* player;
     Actor* actors[MAX_GAME_ENTITIES];
     Actor actorPool[MAX_GAME_ENTITIES];
     unsigned int numActors;
     Camera camera;
+    Camera debugCamera;
+    Camera* currentCamera;
 
 
     Game();
+    ~Game();
     void update();
-    void render() const;
+    void render();
     private:
     void drawActor(Actor* e) const;
     Actor* spawnActor(Vec2 pos);
-    const Tile* getTileAtPos(Vec2 worldPos) const;
-    void drawTiles() const;
+    Tile* getTileAtPos(Vec2 worldPos);
+    private:
+    void drawTiles();
+    Vec2 getWorldAbsSize() const;
+    TileRasterBuffer writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start);
 };

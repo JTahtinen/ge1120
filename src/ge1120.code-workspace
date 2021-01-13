@@ -9,7 +9,8 @@
 	],
 	"settings": {
 		"files.associations": {
-			"xlocale": "cpp"
+			"xlocale": "cpp",
+			"*.rh": "cpp"
 		}
 	}
 

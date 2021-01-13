@@ -6,8 +6,8 @@
 
 Vec2 Mat3::mul(const Vec2 vec) const
 {
-    Vec2 result(vec.x * units[0] + vec.y * units[1] + 1 * units[2],
-                vec.x * units[3] + vec.y * units[4] + 1 * units[5]);
+    Vec2 result(vec.x * units[0] + vec.y * units[1] + 1.0f * units[2],
+                vec.x * units[3] + vec.y * units[4] + 1.0f * units[5]);
     return result;
 }
 
@@ -44,6 +44,14 @@ Mat3 Mat3::mul(const Mat3& other) const
 
                 };			
     return result;*/
+}
+
+Mat3 Mat3::identity()
+{
+    Mat3 result =   {1.0f, 0, 0,
+                    0, 1.0f, 0,
+                    0, 0, 1.0f};
+    return result;
 }
 
 Mat3 Mat3::rotation(float angle)
