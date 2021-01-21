@@ -2,11 +2,11 @@
 #include "system/event.h"
 #include "system/input.h"
 #include "graphics/renderer.h"
-
+#include "graphics/vertexarray.h"
 class Texture;
 
-extern unsigned int entityVAO;
-extern unsigned int thingyVAO;
+extern VertexArray* entityVAO;
+extern VertexArray* thingyVAO;
 extern Renderer g_renderer;
 extern Texture* entityTexture;
 extern Texture* thingyTexture;

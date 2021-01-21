@@ -1,5 +1,6 @@
 #pragma once
 #include "../math/vec2.h"
+#include "../graphics/vertexarray.h"
 class Texture;
 
 struct Entity
@@ -12,7 +13,7 @@ struct Entity
 struct Actor
 {
     Entity entity;
-    unsigned int vao;
+    VertexArray* vao;
     const Texture* texture;
     float speed;
 };

@@ -9,6 +9,7 @@
 #include <SDL2/SDL_image.h>
 #include "math/vec2.h"
 #include "game/game.h"
+#include "graphics/vertexarray.h"
 
 static bool running;
 
@@ -25,8 +26,8 @@ static Shader *shader;
 
 static Game *game;
 
-unsigned int entityVAO;
-unsigned int thingyVAO;
+VertexArray* entityVAO;
+VertexArray* thingyVAO;
 Texture* entityTexture;
 Texture* thingyTexture;
 
@@ -111,7 +112,16 @@ static void initEntity()
             0.1f, 0.1f, 1.0f, 0.0f,
             -0.1f, 0.1f, 0.0f, 0.0f};
 
-        GLuint vbo;
+        entityVAO = new VertexArray();
+        Buffer* entityVBO = new Buffer();
+        entityVBO->setData(vertices, sizeof(vertices));
+        BufferLayout layout;
+        layout.addLayoutElement(GL_FLOAT, 2);
+        layout.addLayoutElement(GL_FLOAT, 2);
+        entityVBO->setLayout(&layout);
+        entityVAO->addBuffer(entityVBO);
+        std::cout << entityVBO->id << std::endl;
+        /*GLuint vbo;
         GLCALL(glGenVertexArrays(1, &entityVAO));
         GLCALL(glBindVertexArray(entityVAO));
         GLCALL(glGenBuffers(1, &vbo));
@@ -121,7 +131,7 @@ static void initEntity()
         GLCALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const void *)0));
         GLCALL(glEnableVertexAttribArray(1));
         GLCALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const void *)(2 * sizeof(float))));
-
+*/
         entityTexture = Texture::loadTexture("res/textures/dude.bmp");
         entityTexture->bind();
 
@@ -188,7 +198,14 @@ static bool start()
             0.5f, 0.5f, 1.0f, 0.0f,
             -0.5f, 0.5f, 0.0f, 0.0f};
 
-        GLuint vbo;
+        thingyVAO = new VertexArray();
+        Buffer* thingyVBO = new Buffer();
+        std::cout << thingyVBO->id << std::endl;
+        thingyVBO->setData(vertices, sizeof(vertices));
+        BufferLayout layout;
+        layout.addLayoutElement(GL_FLOAT, 2);
+        layout.addLayoutElement(GL_FLOAT, 2);
+        /*GLuint vbo;
         GLCALL(glGenVertexArrays(1, &thingyVAO));
         GLCALL(glBindVertexArray(thingyVAO));
         GLCALL(glGenBuffers(1, &vbo));
@@ -198,7 +215,7 @@ static bool start()
         GLCALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const void *)0));
         GLCALL(glEnableVertexAttribArray(1));
         GLCALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const void *)(2 * sizeof(float))));
-
+*/
         thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
         thingyTexture->bind();
 
@@ -250,6 +267,10 @@ int main()
     {
         delete shader;
         shader = nullptr;
+        delete entityVAO;
+        entityVAO = nullptr;
+        delete thingyVAO;
+        thingyVAO = nullptr;
         SDL_GL_DeleteContext(glContext);
         SDL_DestroyWindow(win);
     }
