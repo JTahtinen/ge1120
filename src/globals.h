@@ -12,3 +12,5 @@ extern Texture* entityTexture;
 extern Texture* thingyTexture;
 extern EventContainer g_events; 
 extern Input g_input;
+
+extern unsigned int g_boundShaderID;

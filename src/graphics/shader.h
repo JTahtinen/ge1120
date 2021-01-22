@@ -8,6 +8,7 @@ class Shader
 {
     unsigned int _id;
     bool _valid;
+    std::string _vertexSource;
     std::unordered_map<std::string, int> _uniformLocations;
 
     public:

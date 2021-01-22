@@ -3,6 +3,7 @@
 #include "../defs.h"
 #include "../util/file.h"
 #include <iostream>
+#include "../globals.h"
 
 #define U_LOCATION getUniformLocation(u_Name)
 
@@ -55,14 +56,21 @@ Shader* Shader::load(const std::string &vertexSource, const std::string &fragmen
     GLCALL(glValidateProgram(id));
     GLCALL(glDeleteShader(vs));
     GLCALL(glDeleteShader(fs));
-    return new Shader(id);
+    Shader* shader = new Shader(id);
+    shader->_vertexSource = vertexSource;
+    return shader;
 }
 
 bool Shader::bind() const
 {
-    if (_valid)
+    if (g_boundShaderID == _id)
+    {
+        return true;
+    }
+    else if (_valid)
     {
 	    GLCALL(glUseProgram(_id));
+        g_boundShaderID = _id;
         return true;
     }
     else
@@ -74,31 +82,37 @@ bool Shader::bind() const
 
 void Shader::setUniform1i(const std::string &u_Name, int v0)
 {
+    bind();
     GLCALL(glUniform1i(U_LOCATION, v0));
 }
 
 void Shader::setUniform1f(const std::string &u_Name, float v0)
 {
+    bind();
     GLCALL(glUniform1f(U_LOCATION, v0));
 }
 
 void Shader::setUniform2f(const std::string &u_Name, float v0, float v1)
 {
+    bind();
     GLCALL(glUniform2f(U_LOCATION, v0, v1));
 }
 
 void Shader::setUniform3f(const std::string &u_Name, float v0, float v1, float v2)
 {
+    bind();
     GLCALL(glUniform3f(U_LOCATION, v0, v1, v2));
 }
 
 void Shader::setUniform4f(const std::string &u_Name, float v0, float v1, float v2, float v3)
 {
+    bind();
     GLCALL(glUniform4f(U_LOCATION, v0, v1, v2, v3));
 }
 
 void Shader::setUniformMat3(const std::string& u_Name, const Mat3& mat)
 {
+    bind();
     GLCALL(glUniformMatrix3fv(U_LOCATION, 1, GL_TRUE, &mat.units[0]));
 }
 

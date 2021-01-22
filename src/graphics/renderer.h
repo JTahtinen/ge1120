@@ -1,12 +1,15 @@
 #pragma once
 #include "../math/vec2.h"
 #include "../math/mat3.h"
+#include "vertexarray.h"
+
 class Shader;
 class Texture;
 struct Renderer
 {
     Shader*     shader {nullptr};
+    Shader*     lineShader {nullptr};
     
     void renderVAO(unsigned int vao, const Texture* texture, const Mat3& model, const Mat3& view);
-    void bind() const;
+    void renderLine(VertexArray* vao);
 };

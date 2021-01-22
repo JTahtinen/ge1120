@@ -10,12 +10,13 @@ void Renderer::renderVAO(unsigned int vao, const Texture* texture, const Mat3& m
 {
     if (!shader)
     {
-        std::cout << "[ERROR] Could not render vao " << vao << ". Shader was null!" << std::endl;
+        std::cout << "[ERROR] Could not render vao " << vao << ". Shader was NULL!" << std::endl;
         return;
     }
+    shader->bind();
     if (!texture)
     {
-        std::cout << "[ERROR] Could not render vao " << vao << ". Texture was null!" << std::endl;
+        std::cout << "[ERROR] Could not render vao " << vao << ". Texture was NULL!" << std::endl;
         return;
     }
     GLCALL(glBindVertexArray(vao));
@@ -25,13 +26,14 @@ void Renderer::renderVAO(unsigned int vao, const Texture* texture, const Mat3& m
     GLCALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
 }
 
-void Renderer::bind() const
+void Renderer::renderLine(VertexArray* vao)
 {
-    if (!shader)
+    if (!vao) 
     {
-        std::cout << "[ERROR] Could not bind Renderer. Shader was null!" << std::endl;
+        std::cout << "[ERROR] Could not draw line. VAO was NULL!" << std::endl;
         return;
     }
-
-    shader->bind();
+    lineShader->bind();
+    vao->bind();
+    GLCALL(glDrawArrays(GL_LINES, 0, 2));
 }

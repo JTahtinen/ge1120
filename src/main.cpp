@@ -18,11 +18,14 @@ Input g_input;
 
 Renderer g_renderer;
 
+unsigned int g_boundShaderID;
+
 static int windowWidth;
 static int windowHeight;
 
 static SDL_Window *win;
 static Shader *shader;
+static Shader *lineShader;
 
 static Game *game;
 
@@ -30,6 +33,8 @@ VertexArray* entityVAO;
 VertexArray* thingyVAO;
 Texture* entityTexture;
 Texture* thingyTexture;
+
+static VertexArray* lineVAO;
 
 static void updateInputs()
 {
@@ -80,6 +85,7 @@ static void updateGame()
     //shader->setUniform2f("u_Offset", player.pos.x, player.pos.y);
     game->update();
     game->render();
+    g_renderer.renderLine(lineVAO);
 }
 
 static void updateSystem()
@@ -147,6 +153,7 @@ static void initEntity()
 }
 
 
+
 static bool start()
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
@@ -192,6 +199,21 @@ static bool start()
         GLenum status = glewInit();
         glClearColor(0.3f, 0.4f, 0.1f, 1.0f);
 
+        float linePoints[]
+        {
+            -0.2f, -0.3f,
+            0.3f, 0.2f
+        };
+
+        lineVAO = new VertexArray();
+        Buffer* lineBuffer = new Buffer();
+        lineBuffer->setData(linePoints, sizeof(linePoints));
+        BufferLayout lineLayout;
+        lineLayout.addLayoutElement(GL_FLOAT, 2);
+        lineBuffer->setLayout(&lineLayout);
+        lineVAO->addBuffer(lineBuffer);
+
+
         float vertices[]{
             -0.5f, -0.5f, 0.0f, 1.0f,
             0.5f, -0.5f, 1.0f, 1.0f,
@@ -235,8 +257,14 @@ static bool start()
         }
         shader->setUniform1f("u_Aspect", aspect);
         shader->setUniform1i("u_Texture", 0);
+        lineShader = Shader::load("res/shaders/line.vs", "res/shaders/line.fs");
+        if (!lineShader->bind())
+        {
+            return false;
+        }
+        lineShader->setUniform4f("u_Color", 1.0f, 0, 0, 1.0f);
         g_renderer.shader = shader;
-        g_renderer.bind();
+        g_renderer.lineShader = lineShader;
 		initEntity();
         game = new Game();
         run();
@@ -266,11 +294,15 @@ int main()
     else
     {
         delete shader;
-        shader = nullptr;
+        delete lineShader;
         delete entityVAO;
-        entityVAO = nullptr;
         delete thingyVAO;
+        delete lineVAO;
+        shader = nullptr;
+        lineShader = nullptr;
+        entityVAO = nullptr;
         thingyVAO = nullptr;
+        lineVAO = nullptr;
         SDL_GL_DeleteContext(glContext);
         SDL_DestroyWindow(win);
     }
