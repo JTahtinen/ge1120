@@ -15,6 +15,7 @@ class BufferLayout
     int stride;
     public:
     BufferLayout();
+    ~BufferLayout();
     void addLayoutElement(GLenum type, int count);
 };
 

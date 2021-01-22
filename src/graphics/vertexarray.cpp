@@ -33,6 +33,12 @@ BufferLayout::BufferLayout()
     layoutElements = new BufferLayoutElement[MAX_LAYOUT_ELEMENTS];
 }
 
+BufferLayout::~BufferLayout()
+{
+    delete[] layoutElements;
+    layoutElements = nullptr;
+}
+
 void BufferLayout::addLayoutElement(GLenum type, int count)
 {
     if (count < 1) return;
