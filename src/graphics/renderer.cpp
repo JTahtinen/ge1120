@@ -7,6 +7,25 @@
 #include <iostream>
 #include "../globals.h"
 
+Renderer::Renderer()
+    : numLinePositions(0)
+{
+    lineBatchVAO = new VertexArray();
+    lineBatchVAO->bind();
+    Buffer* lineVBO = new Buffer();
+    lineVBO->setData(NULL, sizeof(float) * 200, GL_DYNAMIC_DRAW);
+    BufferLayout lineLayout;
+    lineLayout.addLayoutElement(GL_FLOAT, 2);
+    lineVBO->setLayout(&lineLayout);
+    lineBatchVAO->addBuffer(lineVBO);
+}
+
+Renderer::~Renderer()
+{
+    delete lineBatchVAO;
+    lineBatchVAO = nullptr;
+}
+
 void Renderer::renderVAO(VertexArray* vao, const Texture *texture, const Mat3 &model, const Mat3 &view, RenderType renderType)
 {
     if (!shader)
@@ -69,6 +88,34 @@ void Renderer::renderLine(VertexArray *vao)
     GLCALL(glDrawArrays(GL_LINES, 0, 2));
 }
 
-void Renderer::renderLine(float x0, float y0, float x1, float y1)
+void Renderer::submitLine(float x0, float y0, float x1, float y1)
 {
+    lineBatchVAO->bind();
+    Buffer* buffer = lineBatchVAO->getBuffer(0);
+    buffer->bind();
+    if (!buffer)
+    {
+        std::cout << "[ERROR] Could not submit line to renderer. Buffer was NULL!" << std::endl;
+        return;
+    }   
+    linePositions = (Vec2*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + numLinePositions;
+    linePositions->x = x0;
+    linePositions->y = y0;
+    linePositions++;
+    linePositions->x = x1;
+    linePositions->y = y1;
+    numLinePositions += 2;
+
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+}
+
+void Renderer::flush()
+{
+    lineBatchVAO->bind();
+    lineShader->bind();
+    static Mat3 ident = Mat3::identity();
+    lineShader->setUniformMat3("u_Model", ident);
+    lineShader->setUniformMat3("u_View", ident);
+    GLCALL(glDrawArrays(GL_LINES, 0, numLinePositions));
+    numLinePositions = 0;
 }

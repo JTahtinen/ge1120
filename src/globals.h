@@ -7,7 +7,7 @@ class Texture;
 
 extern VertexArray* entityVAO;
 extern VertexArray* thingyVAO;
-extern Renderer g_renderer;
+extern Renderer* g_renderer;
 extern Texture* entityTexture;
 extern Texture* thingyTexture;
 extern EventContainer g_events; 
@@ -19,3 +19,5 @@ extern unsigned int g_boundVBOID;
 
 extern unsigned int g_squareFillIBO;
 extern unsigned int g_squareLineIBO;
+
+extern bool g_enableWireframe;

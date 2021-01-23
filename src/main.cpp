@@ -16,7 +16,7 @@ static bool running;
 EventContainer g_events;
 Input g_input;
 
-Renderer g_renderer;
+Renderer* g_renderer;
 
 unsigned int g_boundShaderID;
 unsigned int g_boundVAOID;
@@ -40,6 +40,8 @@ Texture* thingyTexture;
 unsigned int g_squareFillIBO;
 unsigned int g_squareLineIBO;
 
+bool g_enableWireframe;
+
 static VertexArray* lineVAO;
 
 static void updateInputs()
@@ -48,6 +50,10 @@ static void updateInputs()
     if (g_input.isKeyPressed(KEY_ESCAPE))
     {
         running = false;
+    }
+    if (g_input.isKeyTyped(KEY_Q))
+    {
+        g_enableWireframe = !g_enableWireframe;
     }
     
 }
@@ -67,6 +73,7 @@ static void updateWindow()
         }
     }
    // GLCALL(glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0));
+    g_renderer->flush();
     SDL_GL_SwapWindow(win);
 }
 
@@ -93,7 +100,9 @@ static void updateGame()
     static Mat3 ident = Mat3::identity();
     lineShader->setUniformMat3("u_Model", ident);
     lineShader->setUniformMat3("u_View", ident);
-    g_renderer.renderLine(lineVAO);
+    //g_renderer.renderLine(lineVAO);
+    g_renderer->submitLine(-0.25f, -0.25f, -0.15f, -0.3f);
+    g_renderer->submitLine(0, 0, 0.5f, 0.05f);
 }
 
 static void updateSystem()
@@ -287,8 +296,10 @@ static bool start()
         }
         lineShader->setUniform4f("u_Color", 1.0f, 0, 0, 1.0f);
         lineShader->setUniform1f("u_Aspect", aspect);
-        g_renderer.shader = shader;
-        g_renderer.lineShader = lineShader;
+
+        g_renderer = new Renderer();
+        g_renderer->shader = shader;
+        g_renderer->lineShader = lineShader;
 		initEntity();
         game = new Game();
         run();
@@ -317,11 +328,13 @@ int main()
     }
     else
     {
+        delete g_renderer;
         delete shader;
         delete lineShader;
         delete entityVAO;
         delete thingyVAO;
         delete lineVAO;
+        g_renderer = nullptr;
         shader = nullptr;
         lineShader = nullptr;
         entityVAO = nullptr;

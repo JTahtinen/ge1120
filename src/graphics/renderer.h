@@ -16,9 +16,14 @@ struct Renderer
 {
     Shader*     shader {nullptr};
     Shader*     lineShader {nullptr};
+    VertexArray* lineBatchVAO;
+    Vec2*        linePositions;
+    unsigned int numLinePositions;
 
-    
+    Renderer();
+    ~Renderer();
     void renderVAO(VertexArray* vao, const Texture* texture, const Mat3& model, const Mat3& view,  RenderType renderType = RENDER_SOLID);
     void renderLine(VertexArray* vao);
-    void renderLine(float x0, float y0, float x1, float y1);
+    void submitLine(float x0, float y0, float x1, float y1);
+    void flush();
 };

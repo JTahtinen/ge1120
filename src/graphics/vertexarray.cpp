@@ -68,6 +68,7 @@ void Buffer::bind()
     if (id != g_boundVBOID)
     {
         GLCALL(glBindBuffer(GL_ARRAY_BUFFER, id));
+        g_boundVBOID = id;
     }
 }
 
@@ -112,10 +113,21 @@ void VertexArray::addBuffer(Buffer* buffer)
     }
 }
 
+Buffer* VertexArray::getBuffer(unsigned int index)
+{
+    if (index < numBuffers)
+    {
+        return buffers[index];
+    }
+    std::cout << "[ERROR] Could not get buffer, index: " << index << " from VertexArray, ID: " << id << "!"<< std::endl;
+    return nullptr;
+}
+
 void VertexArray::bind()
 {
     if (id != g_boundVAOID)
     {
         GLCALL(glBindVertexArray(id));
+        g_boundVAOID = id;
     }
 }

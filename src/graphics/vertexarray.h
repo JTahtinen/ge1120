@@ -39,5 +39,6 @@ struct VertexArray
     VertexArray();
     ~VertexArray();
     void addBuffer(Buffer* buffer);
+    Buffer* getBuffer(unsigned int index);
     void bind();
 };

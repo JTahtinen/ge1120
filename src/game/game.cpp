@@ -169,7 +169,15 @@ void Game::render()
 
 void Game::drawActor(Actor *e) const
 {
-    g_renderer.renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID_AND_WIREFRAME);
+    if (g_enableWireframe)
+    {
+        g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID_AND_WIREFRAME);
+    }
+    else
+    {
+        g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID);
+    }
+    
 }
 
 Tile *Game::getTileAtPos(Vec2 worldPos)
@@ -435,7 +443,7 @@ void Game::drawTiles()
                 continue;
             if (x > worldW - 1)
                 break;
-            g_renderer.renderVAO(entityVAO, tileMap[x + (bottomTileY + y) * worldW].texture, Mat3::translation(Vec2(TILE_SIZE * x, TILE_SIZE * y)), view);
+            g_renderer->renderVAO(entityVAO, tileMap[x + (bottomTileY + y) * worldW].texture, Mat3::translation(Vec2(TILE_SIZE * x, TILE_SIZE * y)), view);
         }
     }
     delete[] combinedBuffer;
