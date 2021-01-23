@@ -33,8 +33,12 @@ static Game *game;
 
 VertexArray* entityVAO;
 VertexArray* thingyVAO;
+
 Texture* entityTexture;
 Texture* thingyTexture;
+
+unsigned int g_squareFillIBO;
+unsigned int g_squareLineIBO;
 
 static VertexArray* lineVAO;
 
@@ -48,7 +52,6 @@ static void updateInputs()
     
 }
 
-static unsigned int numIndices;
 
 static void updateWindow()
 {
@@ -87,6 +90,9 @@ static void updateGame()
     //shader->setUniform2f("u_Offset", player.pos.x, player.pos.y);
     game->update();
     game->render();
+    static Mat3 ident = Mat3::identity();
+    lineShader->setUniformMat3("u_Model", ident);
+    lineShader->setUniformMat3("u_View", ident);
     g_renderer.renderLine(lineVAO);
 }
 
@@ -146,7 +152,7 @@ static void initEntity()
         unsigned int indices[]{
             0, 1, 2, 2, 3, 0};
 
-        numIndices = sizeof(indices) / sizeof(unsigned int);
+        unsigned int numFillIndices = sizeof(indices) / sizeof(unsigned int);
 
         GLuint ibo;
         GLCALL(glGenBuffers(1, &ibo));
@@ -201,6 +207,9 @@ static bool start()
         GLenum status = glewInit();
         glClearColor(0.3f, 0.4f, 0.1f, 1.0f);
 
+        glLineWidth(2);
+        glEnable(GL_LINE_SMOOTH);
+
         float linePoints[]
         {
             -0.2f, -0.3f,
@@ -244,15 +253,26 @@ static bool start()
         thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
         thingyTexture->bind();
 
-        unsigned int indices[]{
+        unsigned int fillIndices[]{
             0, 1, 2, 2, 3, 0};
 
-        numIndices = sizeof(indices) / sizeof(unsigned int);
+        unsigned int numFillIndices = sizeof(fillIndices) / sizeof(unsigned int);
 
-        GLuint ibo;
-        GLCALL(glGenBuffers(1, &ibo));
-        GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-        GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
+        
+        GLCALL(glGenBuffers(1, &g_squareFillIBO));
+        GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_squareFillIBO));
+        GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fillIndices), fillIndices, GL_STATIC_DRAW));
+
+        unsigned int lineIndices[]
+        {
+            0, 1, 1, 2, 2, 0, 0, 3, 3, 2
+        };
+        
+        unsigned int numLineIndices = sizeof(lineIndices) / sizeof(unsigned int);
+
+        GLCALL(glGenBuffers(1, &g_squareLineIBO));
+        GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_squareLineIBO));
+        GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(lineIndices), lineIndices, GL_STATIC_DRAW));
         shader = Shader::load("res/shaders/basic.vs", "res/shaders/basic.fs");
         if (!shader->bind())
         {
@@ -266,6 +286,7 @@ static bool start()
             return false;
         }
         lineShader->setUniform4f("u_Color", 1.0f, 0, 0, 1.0f);
+        lineShader->setUniform1f("u_Aspect", aspect);
         g_renderer.shader = shader;
         g_renderer.lineShader = lineShader;
 		initEntity();

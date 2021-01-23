@@ -57,10 +57,10 @@ Buffer::Buffer()
     bind();   
 }
 
-void Buffer::setData(const void* data, size_t size)
+void Buffer::setData(const void* data, size_t size, GLenum usage)
 {
     bind();
-    GLCALL(glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW));
+    GLCALL(glBufferData(GL_ARRAY_BUFFER, size, data, usage));
 }
 
 void Buffer::bind()

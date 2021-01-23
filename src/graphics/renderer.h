@@ -3,14 +3,22 @@
 #include "../math/mat3.h"
 #include "vertexarray.h"
 
+enum RenderType
+{
+    RENDER_SOLID,
+    RENDER_WIREFRAME,
+    RENDER_SOLID_AND_WIREFRAME
+};
+
 class Shader;
 class Texture;
 struct Renderer
 {
     Shader*     shader {nullptr};
     Shader*     lineShader {nullptr};
+
     
-    void renderVAO(unsigned int vao, const Texture* texture, const Mat3& model, const Mat3& view);
+    void renderVAO(VertexArray* vao, const Texture* texture, const Mat3& model, const Mat3& view,  RenderType renderType = RENDER_SOLID);
     void renderLine(VertexArray* vao);
     void renderLine(float x0, float y0, float x1, float y1);
 };

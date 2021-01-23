@@ -16,3 +16,6 @@ extern Input g_input;
 extern unsigned int g_boundShaderID;
 extern unsigned int g_boundVAOID;
 extern unsigned int g_boundVBOID;
+
+extern unsigned int g_squareFillIBO;
+extern unsigned int g_squareLineIBO;

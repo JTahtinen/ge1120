@@ -24,7 +24,7 @@ struct Buffer
     public:
     Buffer();
     ~Buffer();
-    void setData(const void* data, size_t size);
+    void setData(const void* data, size_t size, GLenum usage = GL_STATIC_DRAW);
     void setLayout(const BufferLayout* layout);
     void bind();
 };

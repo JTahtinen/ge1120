@@ -5,8 +5,9 @@
 #include "../math/mat3.h"
 #include "../math/math.h"
 #include <iostream>
+#include "../globals.h"
 
-void Renderer::renderVAO(unsigned int vao, const Texture* texture, const Mat3& model, const Mat3& view)
+void Renderer::renderVAO(VertexArray* vao, const Texture *texture, const Mat3 &model, const Mat3 &view, RenderType renderType)
 {
     if (!shader)
     {
@@ -19,16 +20,46 @@ void Renderer::renderVAO(unsigned int vao, const Texture* texture, const Mat3& m
         std::cout << "[ERROR] Could not render vao " << vao << ". Texture was NULL!" << std::endl;
         return;
     }
-    GLCALL(glBindVertexArray(vao));
-    shader->setUniformMat3("u_Model", model);
-    shader->setUniformMat3("u_View", view);
-    texture->bind();
-    GLCALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
+    vao->bind();
+    Shader *workingShader;
+    GLenum glRenderFlag;
+    unsigned int numIndices;
+    switch (renderType)
+    {
+        case RENDER_SOLID:
+        {
+            numIndices = 6;
+            GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_squareFillIBO));
+            workingShader = shader;
+            glRenderFlag = GL_TRIANGLES;
+            texture->bind();
+            break;
+        }
+        case RENDER_WIREFRAME:
+        {
+            numIndices = 10;
+            GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_squareLineIBO));
+            workingShader = lineShader;
+            glRenderFlag = GL_LINE_STRIP;
+            break;
+        }
+        case RENDER_SOLID_AND_WIREFRAME:
+        {
+            renderVAO(vao, texture, model, view, RENDER_SOLID);
+            renderVAO(vao, texture, model, view, RENDER_WIREFRAME);
+            return;
+        }
+    }
+
+    workingShader->bind();
+    workingShader->setUniformMat3("u_Model", model);
+    workingShader->setUniformMat3("u_View", view);
+    GLCALL(glDrawElements(glRenderFlag, numIndices, GL_UNSIGNED_INT, 0));
 }
 
-void Renderer::renderLine(VertexArray* vao)
+void Renderer::renderLine(VertexArray *vao)
 {
-    if (!vao) 
+    if (!vao)
     {
         std::cout << "[ERROR] Could not draw line. VAO was NULL!" << std::endl;
         return;
@@ -40,5 +71,4 @@ void Renderer::renderLine(VertexArray* vao)
 
 void Renderer::renderLine(float x0, float y0, float x1, float y1)
 {
-    
 }
