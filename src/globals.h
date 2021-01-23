@@ -14,3 +14,5 @@ extern EventContainer g_events;
 extern Input g_input;
 
 extern unsigned int g_boundShaderID;
+extern unsigned int g_boundVAOID;
+extern unsigned int g_boundVBOID;

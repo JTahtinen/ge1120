@@ -37,3 +37,8 @@ void Renderer::renderLine(VertexArray* vao)
     vao->bind();
     GLCALL(glDrawArrays(GL_LINES, 0, 2));
 }
+
+void Renderer::renderLine(float x0, float y0, float x1, float y1)
+{
+    
+}

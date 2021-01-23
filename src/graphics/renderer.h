@@ -12,4 +12,5 @@ struct Renderer
     
     void renderVAO(unsigned int vao, const Texture* texture, const Mat3& model, const Mat3& view);
     void renderLine(VertexArray* vao);
+    void renderLine(float x0, float y0, float x1, float y1);
 };

@@ -19,6 +19,8 @@ Input g_input;
 Renderer g_renderer;
 
 unsigned int g_boundShaderID;
+unsigned int g_boundVAOID;
+unsigned int g_boundVBOID;
 
 static int windowWidth;
 static int windowHeight;
@@ -207,6 +209,7 @@ static bool start()
 
         lineVAO = new VertexArray();
         Buffer* lineBuffer = new Buffer();
+        std::cout << lineBuffer->id << std::endl;
         lineBuffer->setData(linePoints, sizeof(linePoints));
         BufferLayout lineLayout;
         lineLayout.addLayoutElement(GL_FLOAT, 2);

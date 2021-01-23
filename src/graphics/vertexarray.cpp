@@ -1,5 +1,6 @@
 #include "vertexarray.h"
 #include "../defs.h"
+#include "../globals.h"
 
 #define MAX_LAYOUT_ELEMENTS 10
 
@@ -58,12 +59,16 @@ Buffer::Buffer()
 
 void Buffer::setData(const void* data, size_t size)
 {
+    bind();
     GLCALL(glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW));
 }
 
 void Buffer::bind()
 {
-    GLCALL(glBindBuffer(GL_ARRAY_BUFFER, id));
+    if (id != g_boundVBOID)
+    {
+        GLCALL(glBindBuffer(GL_ARRAY_BUFFER, id));
+    }
 }
 
 Buffer::~Buffer()
@@ -109,5 +114,8 @@ void VertexArray::addBuffer(Buffer* buffer)
 
 void VertexArray::bind()
 {
-    GLCALL(glBindVertexArray(id));
+    if (id != g_boundVAOID)
+    {
+        GLCALL(glBindVertexArray(id));
+    }
 }
