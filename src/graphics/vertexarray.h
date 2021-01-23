@@ -7,9 +7,8 @@ struct BufferLayoutElement
     int count;
 };
 
-class BufferLayout
+struct BufferLayout
 {
-    public:
     BufferLayoutElement* layoutElements;
     unsigned int numLayoutElements;
     int stride;
@@ -19,9 +18,8 @@ class BufferLayout
     void addLayoutElement(GLenum type, int count);
 };
 
-class Buffer
+struct Buffer
 {
-    public:
     unsigned int id;
     public:
     Buffer();
@@ -32,8 +30,8 @@ class Buffer
 };
 
 
-class VertexArray
-{   public:
+struct VertexArray
+{   
     unsigned int id;
     Buffer** buffers;
     unsigned int numBuffers;
