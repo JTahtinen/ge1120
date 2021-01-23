@@ -6,30 +6,29 @@
 
 int getGLTypeSizeInBytes(GLenum type)
 {
-    switch(type)
+    switch (type)
     {
-        case GL_FLOAT:
-			return sizeof(GLfloat);
-		case GL_DOUBLE:
-			return sizeof(GLdouble);
-		case GL_INT:
-			return sizeof(GLint);
-		case GL_UNSIGNED_INT:
-			return sizeof(GLuint);
-		case GL_BYTE:
-			return sizeof(GLbyte);
-		case GL_UNSIGNED_BYTE:
-			return sizeof(GLubyte);
-		case GL_BOOL:
-			return sizeof(GLboolean);
-		default:
-			return 0;
+    case GL_FLOAT:
+        return sizeof(GLfloat);
+    case GL_DOUBLE:
+        return sizeof(GLdouble);
+    case GL_INT:
+        return sizeof(GLint);
+    case GL_UNSIGNED_INT:
+        return sizeof(GLuint);
+    case GL_BYTE:
+        return sizeof(GLbyte);
+    case GL_UNSIGNED_BYTE:
+        return sizeof(GLubyte);
+    case GL_BOOL:
+        return sizeof(GLboolean);
+    default:
+        return 0;
     }
 }
 
 BufferLayout::BufferLayout()
-    : numLayoutElements(0)
-    , stride(0)
+    : numLayoutElements(0), stride(0)
 {
     layoutElements = new BufferLayoutElement[MAX_LAYOUT_ELEMENTS];
 }
@@ -42,11 +41,12 @@ BufferLayout::~BufferLayout()
 
 void BufferLayout::addLayoutElement(GLenum type, int count)
 {
-    if (count < 1) return;
+    if (count < 1)
+        return;
     if (numLayoutElements < MAX_LAYOUT_ELEMENTS)
     {
         layoutElements[numLayoutElements] = {type, count};
-        stride += getGLTypeSizeInBytes(type) * count; 
+        stride += getGLTypeSizeInBytes(type) * count;
         ++numLayoutElements;
     }
 }
@@ -54,10 +54,10 @@ void BufferLayout::addLayoutElement(GLenum type, int count)
 Buffer::Buffer()
 {
     GLCALL(glGenBuffers(1, &this->id));
-    bind();   
+    bind();
 }
 
-void Buffer::setData(const void* data, size_t size, GLenum usage)
+void Buffer::setData(const void *data, size_t size, GLenum usage)
 {
     bind();
     GLCALL(glBufferData(GL_ARRAY_BUFFER, size, data, usage));
@@ -76,17 +76,39 @@ Buffer::~Buffer()
 {
 }
 
-void Buffer::setLayout(const BufferLayout* layout)
+void Buffer::setLayout(const BufferLayout *layout)
 {
     bind();
     uint64_t pointerToElem = 0;
     for (int i = 0; i < layout->numLayoutElements; ++i)
     {
-        const BufferLayoutElement* elem = &layout->layoutElements[i];
+        const BufferLayoutElement *elem = &layout->layoutElements[i];
         GLCALL(glEnableVertexAttribArray(i));
         GLCALL(glVertexAttribPointer(i, elem->count, elem->type, GL_FALSE, layout->stride, (const void *)(pointerToElem)));
         pointerToElem += elem->count * getGLTypeSizeInBytes(elem->type);
-    }   
+    }
+}
+
+IndexBuffer::IndexBuffer()
+    : numIndices(0)
+{
+    GLCALL(glGenBuffers(1, &id));    
+}
+
+void IndexBuffer::setData(unsigned int *data, int count, GLenum usage)
+{
+    bind();
+    GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, count * sizeof(unsigned int), data, usage));
+    numIndices = count;
+}
+
+void IndexBuffer::bind()
+{
+    if (id != g_boundIBOID)
+    {
+        GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id));
+        g_boundIBOID = id;
+    }
 }
 
 #define MAX_VERTEX_ARRAY_BUFFERS 10
@@ -96,7 +118,7 @@ VertexArray::VertexArray()
 {
     glGenVertexArrays(1, &this->id);
     bind();
-    buffers = new Buffer*[MAX_VERTEX_ARRAY_BUFFERS];
+    buffers = new Buffer *[MAX_VERTEX_ARRAY_BUFFERS];
 }
 
 VertexArray::~VertexArray()
@@ -105,7 +127,7 @@ VertexArray::~VertexArray()
     buffers = nullptr;
 }
 
-void VertexArray::addBuffer(Buffer* buffer)
+void VertexArray::addBuffer(Buffer *buffer)
 {
     if (buffer && numBuffers < MAX_VERTEX_ARRAY_BUFFERS)
     {
@@ -113,13 +135,13 @@ void VertexArray::addBuffer(Buffer* buffer)
     }
 }
 
-Buffer* VertexArray::getBuffer(unsigned int index)
+Buffer *VertexArray::getBuffer(unsigned int index)
 {
     if (index < numBuffers)
     {
         return buffers[index];
     }
-    std::cout << "[ERROR] Could not get buffer, index: " << index << " from VertexArray, ID: " << id << "!"<< std::endl;
+    std::cout << "[ERROR] Could not get buffer, index: " << index << " from VertexArray, ID: " << id << "!" << std::endl;
     return nullptr;
 }
 

@@ -29,6 +29,16 @@ struct Buffer
     void bind();
 };
 
+struct IndexBuffer
+{
+    unsigned int id;
+    unsigned int numIndices;
+    public:
+    IndexBuffer();
+    void setData(unsigned int* data, int count, GLenum usage = GL_STATIC_DRAW);
+    void bind();
+};
+
 
 struct VertexArray
 {   

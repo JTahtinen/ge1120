@@ -34,7 +34,7 @@ Game::Game()
         for (int x = 0; x < worldW; ++x)
         {
             Tile *tile = &tileMap[x + y * worldW];
-            tile->texture = thingyTexture;
+            tile->texture = g_thingyTexture;
             tile->xIndex = x;
             tile->yIndex = y;
         }
@@ -58,8 +58,8 @@ Actor *Game::spawnActor(Vec2 pos)
     Actor *e = &actorPool[numActors];
     e->entity.pos = pos;
     e->entity.rotation = 0.0f;
-    e->texture = entityTexture;
-    e->vao = entityVAO;
+    e->texture = g_entityTexture;
+    e->vao = g_entityVAO;
     e->speed = 0.001f;
     actors[numActors++] = e;
     return e;
@@ -443,7 +443,7 @@ void Game::drawTiles()
                 continue;
             if (x > worldW - 1)
                 break;
-            g_renderer->renderVAO(entityVAO, tileMap[x + (bottomTileY + y) * worldW].texture, Mat3::translation(Vec2(TILE_SIZE * x, TILE_SIZE * y)), view);
+            g_renderer->renderVAO(g_entityVAO, tileMap[x + (bottomTileY + y) * worldW].texture, Mat3::translation(Vec2(TILE_SIZE * x, TILE_SIZE * y)), view);
         }
     }
     delete[] combinedBuffer;

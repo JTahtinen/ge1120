@@ -5,19 +5,20 @@
 #include "graphics/vertexarray.h"
 class Texture;
 
-extern VertexArray* entityVAO;
-extern VertexArray* thingyVAO;
+extern VertexArray* g_entityVAO;
+extern VertexArray* g_thingyVAO;
 extern Renderer* g_renderer;
-extern Texture* entityTexture;
-extern Texture* thingyTexture;
+extern Texture* g_entityTexture;
+extern Texture* g_thingyTexture;
 extern EventContainer g_events; 
 extern Input g_input;
 
 extern unsigned int g_boundShaderID;
 extern unsigned int g_boundVAOID;
 extern unsigned int g_boundVBOID;
+extern unsigned int g_boundIBOID;
 
-extern unsigned int g_squareFillIBO;
-extern unsigned int g_squareLineIBO;
+extern IndexBuffer* g_squareFillIBO;
+extern IndexBuffer* g_squareLineIBO;
 
 extern bool g_enableWireframe;

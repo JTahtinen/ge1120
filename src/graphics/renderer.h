@@ -12,18 +12,26 @@ enum RenderType
 
 class Shader;
 class Texture;
+
+struct QuadData;
+
 struct Renderer
 {
-    Shader*     shader {nullptr};
-    Shader*     lineShader {nullptr};
-    VertexArray* lineBatchVAO;
-    Vec2*        linePositions;
-    unsigned int numLinePositions;
+    Shader*         shader {nullptr};
+    Shader*         lineShader {nullptr};
+    Shader*         quadShader {nullptr};
+    VertexArray*    lineBatchVAO;
+    VertexArray*    quadBatchVAO;
+    Vec2*           lineData;
+    unsigned int    numBatchLineVertices;
+    QuadData*       quadData;
+    unsigned int    numBatchQuadVertices;
 
     Renderer();
     ~Renderer();
     void renderVAO(VertexArray* vao, const Texture* texture, const Mat3& model, const Mat3& view,  RenderType renderType = RENDER_SOLID);
     void renderLine(VertexArray* vao);
     void submitLine(float x0, float y0, float x1, float y1);
+    void submitQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3);
     void flush();
 };

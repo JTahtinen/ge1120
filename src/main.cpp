@@ -21,24 +21,28 @@ Renderer* g_renderer;
 unsigned int g_boundShaderID;
 unsigned int g_boundVAOID;
 unsigned int g_boundVBOID;
+unsigned int g_boundIBOID;
 
 static int windowWidth;
 static int windowHeight;
 
 static SDL_Window *win;
+
 static Shader *shader;
 static Shader *lineShader;
+static Shader* quadShader;
 
 static Game *game;
 
-VertexArray* entityVAO;
-VertexArray* thingyVAO;
+VertexArray* g_entityVAO;
+VertexArray* g_thingyVAO;
 
-Texture* entityTexture;
-Texture* thingyTexture;
+Texture* g_entityTexture;
+Texture* g_thingyTexture;
 
-unsigned int g_squareFillIBO;
-unsigned int g_squareLineIBO;
+
+IndexBuffer* g_squareFillIBO;
+IndexBuffer* g_squareLineIBO;
 
 bool g_enableWireframe;
 
@@ -103,6 +107,7 @@ static void updateGame()
     //g_renderer.renderLine(lineVAO);
     g_renderer->submitLine(-0.25f, -0.25f, -0.15f, -0.3f);
     g_renderer->submitLine(0, 0, 0.5f, 0.05f);
+    g_renderer->submitQuad(-0.2f, -0.3f, -0.2f, -0.1f, 0.2f, -0.1f, 0.2f, -0.3f);
 }
 
 static void updateSystem()
@@ -135,38 +140,18 @@ static void initEntity()
             0.1f, 0.1f, 1.0f, 0.0f,
             -0.1f, 0.1f, 0.0f, 0.0f};
 
-        entityVAO = new VertexArray();
+        g_entityVAO = new VertexArray();
         Buffer* entityVBO = new Buffer();
         entityVBO->setData(vertices, sizeof(vertices));
         BufferLayout layout;
         layout.addLayoutElement(GL_FLOAT, 2);
         layout.addLayoutElement(GL_FLOAT, 2);
         entityVBO->setLayout(&layout);
-        entityVAO->addBuffer(entityVBO);
+        g_entityVAO->addBuffer(entityVBO);
         std::cout << entityVBO->id << std::endl;
-        /*GLuint vbo;
-        GLCALL(glGenVertexArrays(1, &entityVAO));
-        GLCALL(glBindVertexArray(entityVAO));
-        GLCALL(glGenBuffers(1, &vbo));
-        GLCALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-        GLCALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
-        GLCALL(glEnableVertexAttribArray(0));
-        GLCALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const void *)0));
-        GLCALL(glEnableVertexAttribArray(1));
-        GLCALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const void *)(2 * sizeof(float))));
-*/
-        entityTexture = Texture::loadTexture("res/textures/dude.bmp");
-        entityTexture->bind();
-
-        unsigned int indices[]{
-            0, 1, 2, 2, 3, 0};
-
-        unsigned int numFillIndices = sizeof(indices) / sizeof(unsigned int);
-
-        GLuint ibo;
-        GLCALL(glGenBuffers(1, &ibo));
-        GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
-        GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW));
+       
+        g_entityTexture = Texture::loadTexture("res/textures/dude.bmp");
+        g_entityTexture->bind();
 }
 
 
@@ -241,47 +226,33 @@ static bool start()
             0.5f, 0.5f, 1.0f, 0.0f,
             -0.5f, 0.5f, 0.0f, 0.0f};
 
-        thingyVAO = new VertexArray();
+        g_thingyVAO = new VertexArray();
         Buffer* thingyVBO = new Buffer();
         std::cout << thingyVBO->id << std::endl;
         thingyVBO->setData(vertices, sizeof(vertices));
         BufferLayout layout;
         layout.addLayoutElement(GL_FLOAT, 2);
         layout.addLayoutElement(GL_FLOAT, 2);
-        /*GLuint vbo;
-        GLCALL(glGenVertexArrays(1, &thingyVAO));
-        GLCALL(glBindVertexArray(thingyVAO));
-        GLCALL(glGenBuffers(1, &vbo));
-        GLCALL(glBindBuffer(GL_ARRAY_BUFFER, vbo));
-        GLCALL(glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW));
-        GLCALL(glEnableVertexAttribArray(0));
-        GLCALL(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const void *)0));
-        GLCALL(glEnableVertexAttribArray(1));
-        GLCALL(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (const void *)(2 * sizeof(float))));
-*/
-        thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
-        thingyTexture->bind();
+     
+
+        g_thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
+        g_thingyTexture->bind();
 
         unsigned int fillIndices[]{
             0, 1, 2, 2, 3, 0};
 
-        unsigned int numFillIndices = sizeof(fillIndices) / sizeof(unsigned int);
 
-        
-        GLCALL(glGenBuffers(1, &g_squareFillIBO));
-        GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_squareFillIBO));
-        GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fillIndices), fillIndices, GL_STATIC_DRAW));
+        g_squareFillIBO = new IndexBuffer();
+        g_squareFillIBO->setData(fillIndices, 6);
 
         unsigned int lineIndices[]
         {
             0, 1, 1, 2, 2, 0, 0, 3, 3, 2
         };
         
-        unsigned int numLineIndices = sizeof(lineIndices) / sizeof(unsigned int);
+        g_squareLineIBO = new IndexBuffer();
+        g_squareLineIBO->setData(lineIndices, 10);
 
-        GLCALL(glGenBuffers(1, &g_squareLineIBO));
-        GLCALL(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_squareLineIBO));
-        GLCALL(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(lineIndices), lineIndices, GL_STATIC_DRAW));
         shader = Shader::load("res/shaders/basic.vs", "res/shaders/basic.fs");
         if (!shader->bind())
         {
@@ -296,16 +267,25 @@ static bool start()
         }
         lineShader->setUniform4f("u_Color", 1.0f, 0, 0, 1.0f);
         lineShader->setUniform1f("u_Aspect", aspect);
+        
+        quadShader = Shader::load("res/shaders/colorquad.vs", "res/shaders/colorquad.fs");
+        if (!quadShader->bind())
+        {
+            return false;
+        }
+        quadShader->setUniform1f("u_Aspect", aspect);
 
         g_renderer = new Renderer();
         g_renderer->shader = shader;
         g_renderer->lineShader = lineShader;
+        g_renderer->quadShader = quadShader;
+
 		initEntity();
         game = new Game();
         run();
         delete game;
-        delete thingyTexture;
-        delete entityTexture;
+        delete g_thingyTexture;
+        delete g_entityTexture;
         //GLCALL(glDeleteVertexArrays(1, &vao));
     }
     else
@@ -331,15 +311,21 @@ int main()
         delete g_renderer;
         delete shader;
         delete lineShader;
-        delete entityVAO;
-        delete thingyVAO;
+        delete quadShader;
+        delete g_entityVAO;
+        delete g_thingyVAO;
         delete lineVAO;
+        delete g_squareFillIBO;
+        delete g_squareLineIBO;
         g_renderer = nullptr;
         shader = nullptr;
         lineShader = nullptr;
-        entityVAO = nullptr;
-        thingyVAO = nullptr;
+        quadShader = nullptr;
+        g_entityVAO = nullptr;
+        g_thingyVAO = nullptr;
         lineVAO = nullptr;
+        g_squareFillIBO = nullptr;
+        g_squareLineIBO = nullptr;
         SDL_GL_DeleteContext(glContext);
         SDL_DestroyWindow(win);
     }
