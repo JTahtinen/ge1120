@@ -7,19 +7,27 @@
 #include <iostream>
 #include "../globals.h"
 
+
 struct QuadData
 {
     Vec2 pos;
     Vec4 color;
 };
 
+#define MAX_RENDERABLES (60000)
+#define QUAD_VERTEX_SIZE (sizeof(QuadData))
+#define QUAD_SIZE (QUAD_VERTEX_SIZE * 4)
+#define QUAD_BUFFER_SIZE (QUAD_SIZE * MAX_RENDERABLES)
+#define QUAD_INDICES_SIZE (MAX_RENDERABLES * 6) 
+
 Renderer::Renderer()
     : numBatchLineVertices(0)
     , numBatchQuadVertices(0)
+    , numBatchQuadIndices(0)
 {
     lineBatchVAO = new VertexArray();
     lineBatchVAO->bind();
-    Buffer *lineVBO = new Buffer();
+    Buffer *lineVBO = new Buffer(); 
     lineVBO->setData(NULL, sizeof(float) * 200, GL_DYNAMIC_DRAW);
     BufferLayout lineLayout;
     lineLayout.addLayoutElement(GL_FLOAT, 2);
@@ -28,8 +36,24 @@ Renderer::Renderer()
 
     quadBatchVAO = new VertexArray();
     quadBatchVAO->bind();
+    quadBatchIBO = new IndexBuffer();
+    unsigned int* quadIndices = new unsigned int[QUAD_INDICES_SIZE];
+    unsigned int offset = 0;
+    for (int i = 0; i < QUAD_INDICES_SIZE; i += 6)
+    {
+        quadIndices[i + 0] = 0 + offset;
+        quadIndices[i + 1] = 1 + offset;
+        quadIndices[i + 2] = 2 + offset;
+        quadIndices[i + 3] = 2 + offset;
+        quadIndices[i + 4] = 3 + offset;
+        quadIndices[i + 5] = 0 + offset;
+        offset += 4;
+    }
+    quadBatchIBO->bind();
+    quadBatchIBO->setData(quadIndices, QUAD_INDICES_SIZE);
+    delete[] quadIndices;
     Buffer *quadVBO = new Buffer();
-    quadVBO->setData(NULL, sizeof(float) * 200, GL_DYNAMIC_DRAW);
+    quadVBO->setData(NULL, QUAD_BUFFER_SIZE, GL_DYNAMIC_DRAW);
     BufferLayout quadLayout;
     quadLayout.addLayoutElement(GL_FLOAT, 2);
     quadLayout.addLayoutElement(GL_FLOAT, 4);
@@ -154,6 +178,8 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
     quadData->color = Vec4(0, 1, 0, 1);
     numBatchQuadVertices += 4;
 
+    numBatchQuadIndices += 6;
+
     glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
@@ -170,10 +196,11 @@ void Renderer::flush()
     numBatchLineVertices = 0;
 
     quadBatchVAO->bind();
-    g_squareFillIBO->bind();
+    quadBatchIBO->bind();
     quadShader->bind();
     quadShader->setUniformMat3("u_Model", ident);
     quadShader->setUniformMat3("u_View", ident);
-    GLCALL(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0));
+    GLCALL(glDrawElements(GL_TRIANGLES, numBatchQuadIndices, GL_UNSIGNED_INT, 0));
     numBatchQuadVertices = 0;
+    numBatchQuadIndices = 0;
 }

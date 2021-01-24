@@ -108,6 +108,7 @@ static void updateGame()
     g_renderer->submitLine(-0.25f, -0.25f, -0.15f, -0.3f);
     g_renderer->submitLine(0, 0, 0.5f, 0.05f);
     g_renderer->submitQuad(-0.2f, -0.3f, -0.2f, -0.1f, 0.2f, -0.1f, 0.2f, -0.3f);
+    g_renderer->submitQuad(0.2f, 0.3f, 0.2f, 0.1f, -0.2f, 0.1f, -0.2f, 0.3f);
 }
 
 static void updateSystem()

@@ -26,7 +26,8 @@ struct Renderer
     unsigned int    numBatchLineVertices;
     QuadData*       quadData;
     unsigned int    numBatchQuadVertices;
-
+    IndexBuffer*    quadBatchIBO;
+    unsigned int    numBatchQuadIndices;
     Renderer();
     ~Renderer();
     void renderVAO(VertexArray* vao, const Texture* texture, const Mat3& model, const Mat3& view,  RenderType renderType = RENDER_SOLID);
