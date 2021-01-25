@@ -5,6 +5,7 @@
 #include "../graphics/texture.h"
 #include "../math/mat3.h"
 #include "../math/math.h"
+#include "../graphics/renderer.h"
 
 static Texture *redTex;
 static Texture *greenTex;

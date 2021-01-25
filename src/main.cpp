@@ -10,6 +10,7 @@
 #include "math/vec2.h"
 #include "game/game.h"
 #include "graphics/vertexarray.h"
+#include "graphics/renderer.h"
 
 static bool running;
 
@@ -18,13 +19,8 @@ static int windowHeight;
 
 static SDL_Window *win;
 
-static Shader *shader;
-static Shader *lineShader;
-static Shader* quadShader;
-
 static Game *game;
 
-static VertexArray* lineVAO;
 
 static void updateInputs()
 {
@@ -75,13 +71,13 @@ static void updateGame()
     */
    // drawEntity(thingyVao, thingyTexture, Vec2(0, 0));
     //drawEntity(player.vao, player.texture, player.pos);
-    shader->setUniform4f("u_Color", red, green, blue, 1.0f);
     //shader->setUniform2f("u_Offset", player.pos.x, player.pos.y);
     game->update();
     game->render();
     static Mat3 ident = Mat3::identity();
-    lineShader->setUniformMat3("u_Model", ident);
-    lineShader->setUniformMat3("u_View", ident);
+    g_basicShader->setUniform4f("u_Color", red, green, blue, 1.0f);
+    g_lineShader->setUniformMat3("u_Model", ident);
+    g_lineShader->setUniformMat3("u_View", ident);
     //g_renderer.renderLine(lineVAO);
     g_renderer->submitLine(-0.25f, -0.25f, -0.15f, -0.3f);
     g_renderer->submitLine(0, 0, 0.5f, 0.05f);
@@ -111,24 +107,6 @@ static void run()
 
 SDL_GLContext glContext;
 
-static void initEntity()
-{
-    float vertices[]{
-            -0.1f, -0.1f, 0.0f, 1.0f,
-            0.1f, -0.1f, 1.0f, 1.0f,
-            0.1f, 0.1f, 1.0f, 0.0f,
-            -0.1f, 0.1f, 0.0f, 0.0f};
-
-        g_entityVAO->bind();
-        Buffer* entityVBO = new Buffer();
-        entityVBO->setData(vertices, sizeof(vertices));
-        BufferLayout layout;
-        layout.addLayoutElement(GL_FLOAT, 2);
-        layout.addLayoutElement(GL_FLOAT, 2);
-        entityVBO->setLayout(&layout);
-        g_entityVAO->addBuffer(entityVBO);
-        std::cout << entityVBO->id << std::endl;       
-}
 
 
 
@@ -139,7 +117,7 @@ static bool start()
         std::cout << "SDL init successful!" << std::endl;
         windowWidth = 1280;
         windowHeight = 720;
-        float aspect = (float)windowWidth / (float)windowHeight;
+        g_aspect = (float)windowWidth / (float)windowHeight;
 
         SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
@@ -181,78 +159,12 @@ static bool start()
         glEnable(GL_LINE_SMOOTH);
 
         initGlobals();
-        float linePoints[]
-        {
-            -0.2f, -0.3f,
-            0.3f, 0.2f
-        };
-
-        lineVAO = new VertexArray();
-        Buffer* lineBuffer = new Buffer();
-        std::cout << lineBuffer->id << std::endl;
-        lineBuffer->setData(linePoints, sizeof(linePoints));
-        BufferLayout lineLayout;
-        lineLayout.addLayoutElement(GL_FLOAT, 2);
-        lineBuffer->setLayout(&lineLayout);
-        lineVAO->addBuffer(lineBuffer);
-
-
-        float vertices[]{
-            -0.5f, -0.5f, 0.0f, 1.0f,
-            0.5f, -0.5f, 1.0f, 1.0f,
-            0.5f, 0.5f, 1.0f, 0.0f,
-            -0.5f, 0.5f, 0.0f, 0.0f};
-
-        g_thingyVAO->bind();
-        Buffer* thingyVBO = new Buffer();
-        std::cout << thingyVBO->id << std::endl;
-        thingyVBO->setData(vertices, sizeof(vertices));
-        BufferLayout layout;
-        layout.addLayoutElement(GL_FLOAT, 2);
-        layout.addLayoutElement(GL_FLOAT, 2);
      
 
 
-        unsigned int fillIndices[]{
-            0, 1, 2, 2, 3, 0};
+   
+       
 
-
-        g_squareFillIBO->setData(fillIndices, 6);
-
-        unsigned int lineIndices[]
-        {
-            0, 1, 1, 2, 2, 0, 0, 3, 3, 2
-        };
-        
-        g_squareLineIBO->setData(lineIndices, 10);
-
-        shader = Shader::load("res/shaders/basic.vs", "res/shaders/basic.fs");
-        if (!shader->bind())
-        {
-            return false;
-        }
-        shader->setUniform1f("u_Aspect", aspect);
-        shader->setUniform1i("u_Texture", 0);
-        lineShader = Shader::load("res/shaders/line.vs", "res/shaders/line.fs");
-        if (!lineShader->bind())
-        {
-            return false;
-        }
-        lineShader->setUniform4f("u_Color", 1.0f, 0, 0, 1.0f);
-        lineShader->setUniform1f("u_Aspect", aspect);
-        
-        quadShader = Shader::load("res/shaders/colorquad.vs", "res/shaders/colorquad.fs");
-        if (!quadShader->bind())
-        {
-            return false;
-        }
-        quadShader->setUniform1f("u_Aspect", aspect);
-
-        g_renderer->shader = shader;
-        g_renderer->lineShader = lineShader;
-        g_renderer->quadShader = quadShader;
-
-		initEntity();
         game = new Game();
         run();
         delete game;
@@ -279,14 +191,6 @@ int main()
     else
     {
         deleteGlobals();
-        delete shader;
-        delete lineShader;
-        delete quadShader;
-        delete lineVAO;
-        shader = nullptr;
-        lineShader = nullptr;
-        quadShader = nullptr;
-        lineVAO = nullptr;
         SDL_GL_DeleteContext(glContext);
         SDL_DestroyWindow(win);
     }
