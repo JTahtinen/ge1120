@@ -150,6 +150,11 @@ void Renderer::submitLine(float x0, float y0, float x1, float y1)
     glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
+void Renderer::submitLine(Vec2 point0, Vec2 point1)
+{
+    submitLine(point0.x, point0.y, point1.x, point1.y);
+}
+
 void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3)
 {
     quadBatchVAO->bind();
@@ -181,6 +186,11 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
     numBatchQuadIndices += 6;
 
     glUnmapBuffer(GL_ARRAY_BUFFER);
+}
+
+void Renderer::submitQuad(Vec2 point0, Vec2 point1, Vec2 point2, Vec2 point3)
+{
+    submitQuad(point0.x, point0.y, point1.x, point1.y, point2.x, point2.y, point3.x, point3.y);
 }
 
 void Renderer::flush()

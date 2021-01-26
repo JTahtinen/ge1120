@@ -32,8 +32,7 @@ static void updateInputs()
     if (g_input.isKeyTyped(KEY_Q))
     {
         g_enableWireframe = !g_enableWireframe;
-    }
-    
+    }   
 }
 
 
@@ -79,10 +78,6 @@ static void updateGame()
     g_lineShader->setUniformMat3("u_Model", ident);
     g_lineShader->setUniformMat3("u_View", ident);
     //g_renderer.renderLine(lineVAO);
-    g_renderer->submitLine(-0.25f, -0.25f, -0.15f, -0.3f);
-    g_renderer->submitLine(0, 0, 0.5f, 0.05f);
-    g_renderer->submitQuad(-0.2f, -0.3f, -0.2f, -0.1f, 0.2f, -0.1f, 0.2f, -0.3f);
-    g_renderer->submitQuad(0.2f, 0.3f, 0.2f, 0.1f, -0.2f, 0.1f, -0.2f, 0.3f);
 }
 
 static void updateSystem()

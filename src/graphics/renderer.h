@@ -33,6 +33,8 @@ struct Renderer
     void renderVAO(VertexArray* vao, const Texture* texture, const Mat3& model, const Mat3& view,  RenderType renderType = RENDER_SOLID);
     void renderLine(VertexArray* vao);
     void submitLine(float x0, float y0, float x1, float y1);
+    void submitLine(Vec2 point0, Vec2 point1);
     void submitQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3);
+    void submitQuad(Vec2 point0, Vec2 point1, Vec2 point2, Vec2 point3);
     void flush();
 };
