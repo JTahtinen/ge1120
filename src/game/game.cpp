@@ -10,10 +10,12 @@
 static Texture *redTex;
 static Texture *greenTex;
 static Tile voidTile;
+static Quad debugQuad;
 
 Game::Game()
     : numActors(0), worldW(50), worldH(40)
 {
+    debugQuad = Quad(-0.01f, -0.01f, -0.01f, 0.01f, 0.01f, 0.01f, 0.01f, -0.01f);
     voidTile.texture = nullptr;
     voidTile.xIndex = -1;
     voidTile.yIndex = -1;
@@ -61,7 +63,7 @@ Actor *Game::spawnActor(Vec2 pos)
     e->entity.rotation = 0.0f;
     e->texture = g_entityTexture;
     e->vao = g_entityVAO;
-    e->speed = 0.001f;
+    e->speed = 0.002f;
     actors[numActors++] = e;
     return e;
 }
@@ -82,7 +84,7 @@ void Game::update()
 
     player->entity.rotation -= g_input.mouseDeltaX * 0.3f;
     //std::cout << player->entity.rotation << std::endl;
-    debugCamera.entity.rotation = player->entity.rotation;
+    //debugCamera.entity.rotation = player->entity.rotation;
     Mat3 playerRotationMat = Mat3::rotation(TO_RADIANS(player->entity.rotation));
     Vec2 playerForward = playerRotationMat * Vec2(0, 1.0f);
     Vec2 playerRight(playerForward.y, -playerForward.x);
@@ -160,8 +162,8 @@ void Game::render()
 {
 
     view = Mat3::rotation(TO_RADIANS(-currentCamera->entity.rotation)) * Mat3::translation(Vec2() - currentCamera->entity.pos);
-
-    //drawTiles();
+    g_renderer->setView(view);
+    drawTiles();
     for (int i = 0; i < numActors; ++i)
     {
         drawActor(actors[i]);
@@ -447,6 +449,11 @@ void Game::drawTiles()
             g_renderer->renderVAO(g_entityVAO, tileMap[x + (bottomTileY + y) * worldW].texture, Mat3::translation(Vec2(TILE_SIZE * x, TILE_SIZE * y)), view);
         }
     }
+    //g_renderer->submitQuad(debugQuad, Vec2(-0.5f, 0.1f));
+    g_renderer->submitQuad(debugQuad, top, Vec4(1, 0, 0, 1));
+    g_renderer->submitQuad(debugQuad, left, Vec4(0, 1, 0, 1));
+    g_renderer->submitQuad(debugQuad, bottom, Vec4(0, 0, 1, 1));
+    g_renderer->submitQuad(debugQuad, right, Vec4(1, 0, 1, 1));
     delete[] combinedBuffer;
 }
 
