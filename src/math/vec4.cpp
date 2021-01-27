@@ -78,6 +78,8 @@ Vec4 &Vec4::operator*=(float value)
 {
     this->x *= value;
     this->y *= value;
+    this->z *= value;
+    this->w *= value;
     return *this;
 }
 
