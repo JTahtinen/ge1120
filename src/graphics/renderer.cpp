@@ -2,32 +2,31 @@
 #include "../defs.h"
 #include "texture.h"
 #include "shader.h"
-#include "../math/mat3.h"
 #include "../math/math.h"
 #include <iostream>
 #include "../globals.h"
-
 
 struct QuadData
 {
     Vec2 pos;
     Vec4 color;
+    Vec3 model[3];
+    Vec3 view[3];
 };
 
 #define MAX_RENDERABLES (60000)
 #define QUAD_VERTEX_SIZE (sizeof(QuadData))
 #define QUAD_SIZE (QUAD_VERTEX_SIZE * 4)
 #define QUAD_BUFFER_SIZE (QUAD_SIZE * MAX_RENDERABLES)
-#define QUAD_INDICES_SIZE (MAX_RENDERABLES * 6) 
+#define QUAD_INDICES_SIZE (MAX_RENDERABLES * 6)
 
 Renderer::Renderer()
-    : numBatchLineVertices(0)
-    , numBatchQuadVertices(0)
-    , numBatchQuadIndices(0)
+    : numBatchLineVertices(0), numBatchQuadVertices(0), numBatchQuadIndices(0)
 {
+    viewMatrix = Mat3::identity();
     lineBatchVAO = new VertexArray();
     lineBatchVAO->bind();
-    Buffer *lineVBO = new Buffer(); 
+    Buffer *lineVBO = new Buffer();
     lineVBO->setData(NULL, sizeof(float) * 200, GL_DYNAMIC_DRAW);
     BufferLayout lineLayout;
     lineLayout.addLayoutElement(GL_FLOAT, 2);
@@ -37,7 +36,7 @@ Renderer::Renderer()
     quadBatchVAO = new VertexArray();
     quadBatchVAO->bind();
     quadBatchIBO = new IndexBuffer();
-    unsigned int* quadIndices = new unsigned int[QUAD_INDICES_SIZE];
+    unsigned int *quadIndices = new unsigned int[QUAD_INDICES_SIZE];
     unsigned int offset = 0;
     for (int i = 0; i < QUAD_INDICES_SIZE; i += 6)
     {
@@ -57,6 +56,13 @@ Renderer::Renderer()
     BufferLayout quadLayout;
     quadLayout.addLayoutElement(GL_FLOAT, 2);
     quadLayout.addLayoutElement(GL_FLOAT, 4);
+    for (int i = 0; i < 2; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            quadLayout.addLayoutElement(GL_FLOAT, 3);
+        }
+    }
     quadVBO->setLayout(&quadLayout);
     quadBatchVAO->addBuffer(quadVBO);
 }
@@ -155,11 +161,12 @@ void Renderer::submitLine(Vec2 point0, Vec2 point1)
     submitLine(point0.x, point0.y, point1.x, point1.y);
 }
 
-void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3)
+void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, Vec2 position, Vec4 color)
 {
     quadBatchVAO->bind();
     Buffer *buffer = quadBatchVAO->getBuffer(0);
     buffer->bind();
+    Mat3 model = Mat3::translation(position);
     if (!buffer)
     {
         std::cout << "[ERROR] Could not submit quad to renderer. Buffer was NULL!" << std::endl;
@@ -168,19 +175,39 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
     quadData = (QuadData *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + numBatchQuadVertices;
     quadData->pos.x = x0;
     quadData->pos.y = y0;
-    quadData->color = Vec4(0, 1, 0, 1);
+    for (int i = 0; i < 3; ++i)
+    {
+        quadData->model[i] = model.rows[i];
+        quadData->view[i] = viewMatrix.rows[i];    
+    }
+    quadData->color = color;
     quadData++;
     quadData->pos.x = x1;
     quadData->pos.y = y1;
-    quadData->color = Vec4(0, 1, 0, 1);
+    for (int i = 0; i < 3; ++i)
+    {
+        quadData->model[i] = model.rows[i];
+        quadData->view[i] = viewMatrix.rows[i];    
+    }
+    quadData->color = color;
     quadData++;
     quadData->pos.x = x2;
     quadData->pos.y = y2;
-    quadData->color = Vec4(0, 1, 0, 1);
+    for (int i = 0; i < 3; ++i)
+    {
+        quadData->model[i] = model.rows[i];
+        quadData->view[i] = viewMatrix.rows[i];    
+    }
+    quadData->color = color;
     quadData++;
     quadData->pos.x = x3;
     quadData->pos.y = y3;
-    quadData->color = Vec4(0, 1, 0, 1);
+    for (int i = 0; i < 3; ++i)
+    {
+        quadData->model[i] = model.rows[i];
+        quadData->view[i] = viewMatrix.rows[i];    
+    }
+    quadData->color = color;
     numBatchQuadVertices += 4;
 
     numBatchQuadIndices += 6;
@@ -188,9 +215,19 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
     glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
-void Renderer::submitQuad(Vec2 point0, Vec2 point1, Vec2 point2, Vec2 point3)
+void Renderer::submitQuad(Vec2 point0, Vec2 point1, Vec2 point2, Vec2 point3, Vec2 position, Vec4 color)
 {
-    submitQuad(point0.x, point0.y, point1.x, point1.y, point2.x, point2.y, point3.x, point3.y);
+    submitQuad(point0.x, point0.y, point1.x, point1.y, point2.x, point2.y, point3.x, point3.y, position, color);
+}
+
+void Renderer::submitQuad(Quad quad, Vec2 position, Vec4 color)
+{
+    submitQuad(quad.point0, quad.point1, quad.point2, quad.point3, position, color);
+}
+
+void Renderer::setView(Mat3 view)
+{
+    viewMatrix = view;
 }
 
 void Renderer::flush()
@@ -208,8 +245,6 @@ void Renderer::flush()
     quadBatchVAO->bind();
     quadBatchIBO->bind();
     quadShader->bind();
-    quadShader->setUniformMat3("u_Model", ident);
-    quadShader->setUniformMat3("u_View", ident);
     GLCALL(glDrawElements(GL_TRIANGLES, numBatchQuadIndices, GL_UNSIGNED_INT, 0));
     numBatchQuadVertices = 0;
     numBatchQuadIndices = 0;
