@@ -1,10 +1,16 @@
 #pragma once
 #include "vec2.h"
+#include "vec3.h"
 
-struct Mat3
+union Mat3
 {
+   
     float units[9];
-
+    Vec3  rows[3];
+   
+    
+    Mat3() {}
+    Mat3(float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2);
     Vec2 mul(const Vec2 vec) const;
     Mat3 mul(const Mat3& other) const;
     static Mat3 identity();

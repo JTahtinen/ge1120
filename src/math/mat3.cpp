@@ -4,6 +4,19 @@
 
 #define get(x, y) units[x + y * 3]
 
+Mat3::Mat3(float x0, float y0, float z0, float x1, float y1, float z1, float x2, float y2, float z2)
+{
+    units[0] = x0;
+    units[1] = y0;
+    units[2] = z0;
+    units[3] = x1;
+    units[4] = y1;
+    units[5] = z1;
+    units[6] = x2; 
+    units[7] = y2;
+    units[8] = z2;
+}
+
 Vec2 Mat3::mul(const Vec2 vec) const
 {
     Vec2 result(vec.x * units[0] + vec.y * units[1] + 1.0f * units[2],
@@ -48,25 +61,25 @@ Mat3 Mat3::mul(const Mat3& other) const
 
 Mat3 Mat3::identity()
 {
-    Mat3 result =   {1.0f, 0, 0,
-                    0, 1.0f, 0,
-                    0, 0, 1.0f};
+    Mat3 result(1.0f, 0.0f, 0.0f,
+                    0.0f, 1.0f, 0.0f,
+                    0.0f, 0.0f, 1.0f);
     return result;
 }
 
 Mat3 Mat3::rotation(float angle)
 {
-    Mat3 result = {cosf(angle), -sinf(angle), 0,
+    Mat3 result(cosf(angle), -sinf(angle), 0,
                     sinf(angle), cosf(angle), 0,
-                    0, 0, 1.0f};
+                    0, 0, 1.0f);
     return result;
 }
 
 Mat3 Mat3::translation(Vec2 vec)
 {  
-    Mat3 result = {1.0f, 0, vec.x,
+    Mat3 result(1.0f, 0, vec.x,
                    0, 1.0f, vec.y,
-                   0, 0, 1.0f};
+                   0, 0, 1.0f);
     return result;
 
 }
