@@ -37,9 +37,9 @@ unsigned int Shader::compileShader(GLenum type, const std::string &fileSource)
     if (result == GL_FALSE)
     {
         if (type == GL_VERTEX_SHADER)
-            std::cout << "[ERROR] Could not compile vertex shader" << std::endl;
+            std::cout << "[ERROR] Could not compile vertex shader: " << fileSource << std::endl;
         else
-            std::cout << "[ERROR] Could not compile fragment shader" << std::endl;
+            std::cout << "[ERROR] Could not compile fragment shader" << fileSource <<std::endl;
     }
     return shader;
 }
