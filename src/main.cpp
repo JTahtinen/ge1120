@@ -75,9 +75,8 @@ static void updateGame()
     game->render();
     static Mat3 ident = Mat3::identity();
     g_basicShader->setUniform4f("u_Color", red, green, blue, 1.0f);
-    g_lineShader->setUniformMat3("u_Model", ident);
-    g_lineShader->setUniformMat3("u_View", ident);
-    //g_renderer.renderLine(lineVAO);
+//   g_renderer->setView(Mat3::identity());
+//   g_renderer->submitLine(0, 0, 0.3f, 0.2f, Vec2(0.01f, -0.01f));    
 }
 
 static void updateSystem()
