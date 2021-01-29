@@ -6,6 +6,7 @@ class Shader;
 class Texture;
 
 #define TILE_SIZE (0.2f)
+#define HALF_TILE_SIZE (TILE_SIZE * 0.5f)
 struct Tile
 {
     unsigned int xIndex;

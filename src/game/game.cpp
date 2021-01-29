@@ -180,15 +180,12 @@ void Game::drawActor(Actor *e) const
     {
         g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID);
     }
-    
 }
 
 Tile *Game::getTileAtPos(Vec2 worldPos)
 {
-    static float halfTile = 0.5f * TILE_SIZE;
-
-    int x = (int)((worldPos.x + halfTile) / TILE_SIZE);
-    int y = (int)((worldPos.y + halfTile) / TILE_SIZE);
+    int x = (int)((worldPos.x) / TILE_SIZE);
+    int y = (int)((worldPos.y) / TILE_SIZE);
     if (x < 0 || y < 0 || x >= worldW || y >= worldH)
         return &voidTile;
     return &tileMap[x + y * worldW];
@@ -199,10 +196,6 @@ static int trbYLen;
 TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start)
 {
     Vec2 worldSize = getWorldAbsSize();
-    if (startPoint.y > worldSize.y)
-        return {0, 0};
-    if (endPoint.y < 0)
-        return {0, 0};
 
     Vec2 finalStartPoint;
     Vec2 finalEndPoint;
@@ -212,84 +205,83 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
         finalStartPoint = Vec2(0, 0);
         finalEndPoint = Vec2(0, 0);
     }
-    
+
     Vec2 dir = endPoint - startPoint;
 
-
-    bool outOfBounds = false;
+    bool startOutOfBounds = false;
+    bool endOutOfBounds = false;
     if (startPoint.x < 0 && startPoint.y < 0)
     {
         finalStartPoint = Vec2(0, 0);
-        outOfBounds = true;
+        startOutOfBounds = true;
     }
     if (endPoint.x > worldSize.x && endPoint.y > worldSize.y)
     {
-        finalEndPoint = Vec2(worldSize.x - TILE_SIZE, worldSize.y - TILE_SIZE);
-        outOfBounds = true;
+        finalEndPoint = Vec2(worldSize.x, worldSize.y);
+        endOutOfBounds = true;
     }
-    
-    if (!outOfBounds)
-    {
+
+ if (!startOutOfBounds)
+   {
         finalStartPoint = startPoint;
-        finalEndPoint = endPoint;
         if (startPoint.y < 0)
         {
-            finalStartPoint = Vec2(getXAtLinePoint(dir, 0), 0);
+            finalStartPoint.x = getXAtLinePoint(dir, 0);
         }     
         if (startPoint.x < 0)
         {
-            finalStartPoint = Vec2(0, getYAtLinePoint(dir, 0));
+            finalStartPoint.y = getYAtLinePoint(dir, 0);
         }
+   }
+   if (!endOutOfBounds)
+   {
+        finalEndPoint = endPoint;
         if (endPoint.y > worldSize.y)
         {
-            finalEndPoint = (Vec2(getXAtLinePoint(dir, worldSize.y - TILE_SIZE), worldSize.y - TILE_SIZE));
+            finalEndPoint.x = getXAtLinePoint(dir, worldSize.y);
         }
         if (endPoint.x > worldSize.x)
         {
-            finalEndPoint = (Vec2(worldSize.x - TILE_SIZE, getYAtLinePoint(dir, worldSize.x - TILE_SIZE)));
+            finalEndPoint.y = getYAtLinePoint(dir, worldSize.x);
         }
     }
 
-    
-    static float halfTile = 0.5f * TILE_SIZE;
-    int startTileX = (int)((finalStartPoint.x + halfTile) / TILE_SIZE);
-    int startTileY = (int)((finalStartPoint.y + halfTile) / TILE_SIZE);
-    int endTileX = (int)((finalEndPoint.x + halfTile) / TILE_SIZE);
-    int endTileY = (int)((finalEndPoint.y + halfTile) / TILE_SIZE);
-    
+    //static float halfTile = 0.5f * TILE_SIZE;
+    int startTileX = (int)((finalStartPoint.x) / TILE_SIZE);
+    int startTileY = (int)((finalStartPoint.y ) / TILE_SIZE);
+    int endTileX = (int)((finalEndPoint.x) / TILE_SIZE);
+    int endTileY = (int)((finalEndPoint.y) / TILE_SIZE);
+
     Vec2 vec = finalEndPoint - finalStartPoint;
-    /*
-    if (startTileX < 0) startTileX = 0;
-    else if (startTileX > worldW - 1) startTileX = worldW - 1;
-    if (startTileY < 0) startTileY = 0;
-    else if (startTileY > worldH - 1) startTileY = worldH - 1;
-*/
+
     int yLen = endTileY - startTileY + 1;
     ASSERT(yLen > 0);
     int *buffer = new int[yLen];
+    Vec4 color;
+    if (start)
+    {
+        color = Vec4(0, 1, 0, 1);
+    }
+    else
+    {
+        color = Vec4(1, 1, 0, 1);
+    }
     for (int y = 0; y < yLen; ++y)
     {
-        Vec2 curScreenPos = finalStartPoint + Vec2(getXAtLinePoint(vec, (finalStartPoint.y + y * TILE_SIZE)), (finalStartPoint.y + y) * TILE_SIZE);
-
+        Vec2 curScreenPos = finalStartPoint + Vec2(getXAtLinePoint(vec, + y * TILE_SIZE), y * TILE_SIZE);
         Tile *tile = getTileAtPos(curScreenPos);
         if (start && tile->xIndex < 0)
             tile = getTileAtPos(Vec2(0, curScreenPos.y));
         else if (!start && tile->xIndex > worldW - 1)
             tile = getTileAtPos(Vec2(worldW, curScreenPos.y));
         buffer[y] = tile->xIndex;
+        g_renderer->submitQuad(debugQuad, curScreenPos, color);
     }
     return {buffer, yLen};
 }
 
 void Game::drawTiles()
 {
-
-    /*if (camera.entity.pos.x < 1.0f || camera.entity.pos.y < 1.0f 
-    || camera.entity.pos.x > worldW * TILE_SIZE + 1.0f || 
-    camera.entity.pos.y > worldH * TILE_SIZE + 1.0f)
-    {
-        return;
-    }*/
     Vec2 top;
     Vec2 left;
     Vec2 bottom;
@@ -332,14 +324,6 @@ void Game::drawTiles()
     Tile *rightTile = getTileAtPos(right);
     Tile *bottomTile = getTileAtPos(bottom);
 
-    /*
-    if (topLeftTile)
-    std::cout << "Top Left: " << topLeftTile->xIndex << ", " << topLeftTile->yIndex << std::endl;
-    if (bottomLeftTile)
-    std::cout << "Bottom Left: " << bottomLeftTile->xIndex << ", " << bottomLeftTile->yIndex << std::endl;
-    if (topRightTile)
-    std::cout << "Top Right: " << topRightTile->xIndex << ", " << topRightTile->yIndex << std::endl << std::endl;
-    */
     int topTileY = topTile->yIndex;
     int bottomTileY = bottomTile->yIndex;
     int leftTileY = leftTile->yIndex;
@@ -378,82 +362,29 @@ void Game::drawTiles()
     delete[] xEndBuffer0.buffer;
     delete[] xStartBuffer1.buffer;
     delete[] xEndBuffer1.buffer;
-    /*if (yDiff > 0 && yDiff < 20)
-    {
-        for (int i = 0; i < yDiff + 1; ++i)
-        {
 
-            Vec2 *startPoint;
-            Vec2 *endPoint;
-            Vec2 *startVec;
-            Vec2 *endVec;
-            if (i < yDiffMidBottomStart)
-            {
-                startPoint = &bottom;
-                startVec = &startVec1;
-            }
-            else
-            {
-                startPoint = &left;
-                startVec = &startVec0;
-            }
-            if (i < yDiffMidBottomEnd)
-            {
-                endPoint = &bottom;
-                endVec = &endVec1;
-            }
-            else
-            {
-                endPoint = &right;
-                endVec = &endVec0;
-            }
-
-
-            Tile *xStartTile =
-                getTileAtPos(
-                    Vec2(startPoint->x + getXAtLinePoint(*startVec, ((float)(bottomTileY + i) * TILE_SIZE)),
-                         (float)(bottomTileY + i) * TILE_SIZE));
-            //xStartTileNum = (int)((getXAtLinePoint(topLBotL, (bottomLeft.y + (float)i * TILE_SIZE)) + bottomLeft.x + (TILE_SIZE * 0.5f)) * (1.0f / TILE_SIZE));
-
-            Tile *xEndTile = getTileAtPos(
-                Vec2(endPoint->x + getXAtLinePoint(*endVec, ((float)(bottomTileY + i) * TILE_SIZE)),
-                     (float)(bottomTileY + i) * TILE_SIZE));
-            if (xStartTile)
-            {
-                tileRasterBuffer[i * 2 + 0] = xStartTile->xIndex;
-                xStartTile->texture = greenTex;
-                debugTiles[numDebugTiles++] = xStartTile;
-            }
-
-            if (xEndTile)
-            {
-                tileRasterBuffer[i * 2 + 1] = xEndTile->xIndex;
-                xEndTile->texture = redTex;
-                debugTiles[numDebugTiles++] = xEndTile;
-                //std::cout << numDebugTiles << std::endl;
-            }
-        }
-    }
-*/
-    //std::cout << topTileY - bottomTileY + 1 << std::endl;
-
-    //std::cout << yTileCount << std::endl;
     for (int y = 0; y < totalBufferSize / 2; ++y)
     {
-        for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1]; ++x)
+        for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 1; ++x)
         {
             if (x < 0)
                 continue;
-            if (x > worldW - 1)
+            if (x >= worldW)
                 break;
-            g_renderer->renderVAO(g_entityVAO, tileMap[x + (bottomTileY + y) * worldW].texture, Mat3::translation(Vec2(TILE_SIZE * x, TILE_SIZE * y)), view);
+            ASSERT(x > -1);
+            g_renderer->renderVAO(g_entityVAO, tileMap[x + (bottomTileY + y) * worldW].texture, 
+            Mat3::translation(Vec2(TILE_SIZE * x - HALF_TILE_SIZE, TILE_SIZE * (bottomTileY + y) - HALF_TILE_SIZE)), view);
         }
     }
     //g_renderer->submitQuad(debugQuad, Vec2(-0.5f, 0.1f));
-    g_renderer->submitQuad(debugQuad, top, Vec4(1, 0, 0, 1));
-    g_renderer->submitQuad(debugQuad, left, Vec4(0, 1, 0, 1));
-    g_renderer->submitQuad(debugQuad, bottom, Vec4(0, 0, 1, 1));
-    g_renderer->submitQuad(debugQuad, right, Vec4(1, 0, 1, 1));
+    g_renderer->submitLine(top, right, {0, 0});
+    g_renderer->submitLine(right, bottom, {0, 0});
+    g_renderer->submitLine(bottom, left, {0, 0});
+    g_renderer->submitLine(left, top, {0, 0});
+  //  g_renderer->submitQuad(debugQuad, top, Vec4(1, 0, 0, 1));
+  //  g_renderer->submitQuad(debugQuad, left, Vec4(0, 1, 0, 1));
+  //  g_renderer->submitQuad(debugQuad, bottom, Vec4(0, 0, 1, 1));
+  //  g_renderer->submitQuad(debugQuad, right, Vec4(1, 0, 1, 1));
     delete[] combinedBuffer;
 }
 
@@ -461,123 +392,3 @@ Vec2 Game::getWorldAbsSize() const
 {
     return Vec2(worldW * TILE_SIZE, worldH * TILE_SIZE);
 }
-/*
-void Game::drawTiles()
-{
-    Vec2 topLeft = camera.getTopLeft();
-    Vec2 bottomLeft = camera.getBottomLeft();
-    Vec2 topRight = camera.getTopRight();
-    Vec2 bottomRight = camera.getBottomRight();
-    Vec2 startVec;
-    Vec2 endVec;
-    if (topLeft.x > bottomRight.x)
-    {
-        if (topLeft.y > bottomLeft.y)
-        {
-            Vec2 temp = topRight;
-            topRight = topLeft;
-            topLeft = temp;
-            temp = bottomRight;
-            bottomRight = bottomLeft;
-            bottomLeft = temp;
-            startVec = topLeft - bottomLeft;
-            endVec = topRight - bottomRight;
-        }
-        else
-        {
-            Vec2 temp = bottomRight;
-            bottomRight = topLeft;
-            topLeft = temp;
-            temp = topRight;
-            topRight = bottomLeft;
-            bottomLeft = temp;
-            startVec = bottomLeft - bottomRight;
-            endVec = topLeft - topRight;
-        }
-    }
-    else 
-    {
-        startVec = topLeft - bottomLeft;
-        endVec = topRight - bottomRight;
-    }
-
-    const Tile *topLeftTile = getTileAtPos(topLeft);
-    const Tile *bottomLeftTile = getTileAtPos(bottomLeft);
-    const Tile *topRightTile = getTileAtPos(topRight);
-    const Tile *bottomRightTile = getTileAtPos(bottomRight);
-    
-    if (topLeftTile)
-    std::cout << "Top Left: " << topLeftTile->xIndex << ", " << topLeftTile->yIndex << std::endl;
-    if (bottomLeftTile)
-    std::cout << "Bottom Left: " << bottomLeftTile->xIndex << ", " << bottomLeftTile->yIndex << std::endl;
-    if (topRightTile)
-    std::cout << "Top Right: " << topRightTile->xIndex << ", " << topRightTile->yIndex << std::endl << std::endl;
-    
-    unsigned int topTileY;
-    unsigned int bottomTileY;
-    if (topLeftTile)
-        topTileY = topLeftTile->yIndex;
-    else
-        topTileY = worldH - 1;
-    if (bottomLeftTile)
-        bottomTileY = bottomLeftTile->yIndex;
-    else
-        bottomTileY = 0;
-
-
-    unsigned int yDiff = topTileY - bottomTileY;
-    unsigned int xStartTileNum;
-    Tile *debugTiles[40];
-    unsigned int numDebugTiles = 0;
-    if (yDiff > 0 && yDiff < 20)
-    {
-        for (unsigned int i = 0; i < yDiff + 1; ++i)
-        {
-            Tile *xStartTile =
-                getTileAtPos(
-                    Vec2(bottomLeft.x + getXAtLinePoint(startVec, ((float)i * TILE_SIZE)),
-                         bottomLeft.y + (float)i * TILE_SIZE));
-            //xStartTileNum = (int)((getXAtLinePoint(topLBotL, (bottomLeft.y + (float)i * TILE_SIZE)) + bottomLeft.x + (TILE_SIZE * 0.5f)) * (1.0f / TILE_SIZE));
-
-            Tile *xEndTile = getTileAtPos(
-                Vec2(bottomRight.x + getXAtLinePoint(endVec, ((float)i * TILE_SIZE)),
-                     bottomRight.y + (float)i * TILE_SIZE));
-            if (xStartTile)
-            {
-                xStartTile->texture = redTex;
-                if (g_input.isKeyTyped(KEY_K))
-                {
-                    // std::cout << xStartTile->xIndex << ", " << xStartTileNum << std::endl;
-                }
-                debugTiles[numDebugTiles++] = xStartTile;
-            }
-            if (xEndTile)
-            {
-                xEndTile->texture = redTex;
-                if (g_input.isKeyTyped(KEY_K))
-                {
-                    // std::cout << xStartTile->xIndex << ", " << xStartTileNum << std::endl;
-                }
-                debugTiles[numDebugTiles++] = xEndTile;
-                //std::cout << numDebugTiles << std::endl;
-            }
-        }
-    }
-
-    //std::cout << topTileY - bottomTileY + 1 << std::endl;
-
-    int yTileCount = (int)((topLeft.y - bottomLeft.y) / TILE_SIZE);
-
-    //std::cout << yTileCount << std::endl;
-    for (int y = 0; y < worldH; ++y)
-    {
-        for (int x = 0; x < worldW; ++x)
-        {
-            g_renderer.renderVAO(entityVAO, tileMap[x + y * worldW].texture, Mat3::translation(Vec2(TILE_SIZE * x, TILE_SIZE * y)), view);
-        }
-    }
-    for (unsigned int i = 0; i < numDebugTiles; ++i)
-    {
-        debugTiles[i]->texture = thingyTexture;
-    }
-}*/
