@@ -10,7 +10,7 @@ void Memory::sortMemoryBlockIndices()
 Memory::Memory()
     : allocation(nullptr)
     , allocationSize(0)
-    , reservedMemoryIndices(0)
+    , numReservedMemoryIndices(0)
 {
 }
 
