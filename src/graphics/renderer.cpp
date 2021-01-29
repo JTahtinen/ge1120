@@ -14,6 +14,13 @@ struct QuadData
     Vec3 view[3];
 };
 
+struct LineData
+{
+    Vec2 pos;
+    Vec3 model[3];
+    Vec3 view[3];
+};
+
 #define MAX_RENDERABLES (60000)
 #define QUAD_VERTEX_SIZE (sizeof(QuadData))
 #define QUAD_SIZE (QUAD_VERTEX_SIZE * 4)
@@ -30,6 +37,13 @@ Renderer::Renderer()
     lineVBO->setData(NULL, sizeof(float) * 200, GL_DYNAMIC_DRAW);
     BufferLayout lineLayout;
     lineLayout.addLayoutElement(GL_FLOAT, 2);
+    for (int i = 0; i < 2; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            lineLayout.addLayoutElement(GL_FLOAT, 3);
+        }
+    }
     lineVBO->setLayout(&lineLayout);
     lineBatchVAO->addBuffer(lineVBO);
 
@@ -135,30 +149,41 @@ void Renderer::renderLine(VertexArray *vao)
     GLCALL(glDrawArrays(GL_LINES, 0, 2));
 }
 
-void Renderer::submitLine(float x0, float y0, float x1, float y1)
+void Renderer::submitLine(float x0, float y0, float x1, float y1, Vec2 offset)
 {
     lineBatchVAO->bind();
     Buffer *buffer = lineBatchVAO->getBuffer(0);
     buffer->bind();
+    Mat3 model = Mat3::translation(offset);
     if (!buffer)
     {
         std::cout << "[ERROR] Could not submit line to renderer. Buffer was NULL!" << std::endl;
         return;
     }
-    lineData = (Vec2 *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + numBatchLineVertices;
-    lineData->x = x0;
-    lineData->y = y0;
+    lineData = (LineData *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + numBatchLineVertices;
+    lineData->pos.x = x0;
+    lineData->pos.y = y0;
+    for (int i = 0; i < 3; ++i)
+    {
+        lineData->model[i] = model.rows[i];
+        lineData->view[i] = viewMatrix.rows[i];
+    }
     lineData++;
-    lineData->x = x1;
-    lineData->y = y1;
+    lineData->pos.x = x1;
+    lineData->pos.y = y1;
+    for (int i = 0; i < 3; ++i)
+    {
+        lineData->model[i] = model.rows[i];
+        lineData->view[i] = viewMatrix.rows[i];
+    }
     numBatchLineVertices += 2;
 
     glUnmapBuffer(GL_ARRAY_BUFFER);
 }
 
-void Renderer::submitLine(Vec2 point0, Vec2 point1)
+void Renderer::submitLine(Vec2 point0, Vec2 point1, Vec2 offset)
 {
-    submitLine(point0.x, point0.y, point1.x, point1.y);
+    submitLine(point0.x, point0.y, point1.x, point1.y, offset);
 }
 
 void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, Vec2 position, Vec4 color)
@@ -178,7 +203,7 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
     for (int i = 0; i < 3; ++i)
     {
         quadData->model[i] = model.rows[i];
-        quadData->view[i] = viewMatrix.rows[i];    
+        quadData->view[i] = viewMatrix.rows[i];
     }
     quadData->color = color;
     quadData++;
@@ -187,7 +212,7 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
     for (int i = 0; i < 3; ++i)
     {
         quadData->model[i] = model.rows[i];
-        quadData->view[i] = viewMatrix.rows[i];    
+        quadData->view[i] = viewMatrix.rows[i];
     }
     quadData->color = color;
     quadData++;
@@ -196,7 +221,7 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
     for (int i = 0; i < 3; ++i)
     {
         quadData->model[i] = model.rows[i];
-        quadData->view[i] = viewMatrix.rows[i];    
+        quadData->view[i] = viewMatrix.rows[i];
     }
     quadData->color = color;
     quadData++;
@@ -205,7 +230,7 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
     for (int i = 0; i < 3; ++i)
     {
         quadData->model[i] = model.rows[i];
-        quadData->view[i] = viewMatrix.rows[i];    
+        quadData->view[i] = viewMatrix.rows[i];
     }
     quadData->color = color;
     numBatchQuadVertices += 4;
@@ -232,13 +257,10 @@ void Renderer::setView(Mat3 view)
 
 void Renderer::flush()
 {
-    static Mat3 ident = Mat3::identity();
     // TODO: DRY cleaning
     lineBatchVAO->bind();
     g_squareLineIBO->bind();
     lineShader->bind();
-    lineShader->setUniformMat3("u_Model", ident);
-    lineShader->setUniformMat3("u_View", ident);
     GLCALL(glDrawArrays(GL_LINES, 0, numBatchLineVertices));
     numBatchLineVertices = 0;
 
