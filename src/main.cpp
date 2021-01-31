@@ -11,6 +11,7 @@
 #include "game/game.h"
 #include "graphics/vertexarray.h"
 #include "graphics/renderer.h"
+#include "system/memory.h"
 
 static bool running;
 
@@ -20,7 +21,6 @@ static int windowHeight;
 static SDL_Window *win;
 
 static Game *game;
-
 
 static void updateInputs()
 {
@@ -32,9 +32,8 @@ static void updateInputs()
     if (g_input.isKeyTyped(KEY_Q))
     {
         g_enableWireframe = !g_enableWireframe;
-    }   
+    }
 }
-
 
 static void updateWindow()
 {
@@ -49,34 +48,73 @@ static void updateWindow()
             break;
         }
     }
-   // GLCALL(glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0));
+    // GLCALL(glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0));
     g_renderer->flush();
     SDL_GL_SwapWindow(win);
 }
 
 static void updateGame()
 {
-    
+
+    Memory mem(1024 * 1024);
+    void *pointers[20];
+    unsigned int numPointers = 0;
+    unsigned int memoryHandles[20];
+    unsigned int numMemoryHandles = 0;
+    while (true)
+    {
+        char input;
+        std::cout << "CMD: ";
+        std::cin >> input;
+        if (input == 'q')
+        {
+            running = false;
+            return;
+        }
+        if (input == 'w')
+        {
+            std::cout << "Reserved Memory" << std::endl;
+            memoryHandles[numMemoryHandles++] = mem.reserve(10, pointers[numPointers++]);
+        }
+        if (input == 'e')
+        {
+            std::cout << "Memory handle: ";
+            std::cin >> input;
+            int val = (int)(input - '0');
+            if (val > -1 && val < numMemoryHandles)
+            {
+                std::cout << "Released Memory" << std::endl;
+                mem.release(memoryHandles[val]);
+                --numMemoryHandles;
+                --numPointers;
+            }
+        }
+        if (input == 'r')
+        {
+            mem.printState();
+        }
+    }
+
     static float red = 0.1f;
     static float green = 0.12f;
     static float blue = 0.15;
     static float colorDir = 1.0f;
-   /* if (colorOffset >= 0.4f)
+    /* if (colorOffset >= 0.4f)
         colorDir = -1.0f;
     else if (colorOffset <= 0.1f)
         colorDir = 1.0f;
 
     colorOffset += colorDir * 0.0005f;
     */
-   // drawEntity(thingyVao, thingyTexture, Vec2(0, 0));
+    // drawEntity(thingyVao, thingyTexture, Vec2(0, 0));
     //drawEntity(player.vao, player.texture, player.pos);
     //shader->setUniform2f("u_Offset", player.pos.x, player.pos.y);
     game->update();
     game->render();
     static Mat3 ident = Mat3::identity();
     g_basicShader->setUniform4f("u_Color", red, green, blue, 1.0f);
-//   g_renderer->setView(Mat3::identity());
-//   g_renderer->submitLine(0, 0, 0.3f, 0.2f, Vec2(0.01f, -0.01f));    
+    //   g_renderer->setView(Mat3::identity());
+    //   g_renderer->submitLine(0, 0, 0.3f, 0.2f, Vec2(0.01f, -0.01f));
 }
 
 static void updateSystem()
@@ -87,7 +125,7 @@ static void updateSystem()
 static void run()
 {
     running = true;
-    
+
     while (running)
     {
         GLCALL(glClear(GL_DEPTH_BUFFER_BIT));
@@ -100,9 +138,6 @@ static void run()
 }
 
 SDL_GLContext glContext;
-
-
-
 
 static bool start()
 {
@@ -153,11 +188,6 @@ static bool start()
         glEnable(GL_LINE_SMOOTH);
 
         initGlobals();
-     
-
-
-   
-       
 
         game = new Game();
         run();
