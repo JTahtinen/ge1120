@@ -22,6 +22,8 @@ static SDL_Window *win;
 
 static Game *game;
 
+static Memory mem;
+
 static void updateInputs()
 {
     g_input.update();
@@ -49,6 +51,8 @@ static void updateWindow()
         }
     }
     // GLCALL(glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0));
+    g_renderer->setView(Mat3::identity());
+    mem.visualize();
     g_renderer->flush();
     SDL_GL_SwapWindow(win);
 }
@@ -56,12 +60,7 @@ static void updateWindow()
 static void updateGame()
 {
 
-    Memory mem(1024 * 1024);
-    void *pointers[20];
-    unsigned int numPointers = 0;
-    unsigned int memoryHandles[20];
-    unsigned int numMemoryHandles = 0;
-    while (true)
+    /*while (true)
     {
         char input;
         std::cout << "CMD: ";
@@ -94,7 +93,33 @@ static void updateGame()
             mem.printState();
         }
     }
+*/
 
+    static void *pointers[20];
+    static unsigned int numPointers = 0;
+    static int memoryHandles[20];
+    static unsigned int numMemoryHandles = 0;
+
+    if (g_input.isKeyTyped(KEY_N))
+    {
+        int handle = mem.reserve(10, pointers[numPointers]);
+        if (handle > -1)
+        {
+            memoryHandles[numMemoryHandles++] = handle;
+            ++numPointers;
+        }
+        mem.printState();
+    }
+    if (g_input.isKeyTyped(KEY_M))
+    {
+        if (numMemoryHandles > 0)
+        {
+            mem.release(memoryHandles[numMemoryHandles - 1]);
+            --numMemoryHandles;
+            --numPointers;
+            mem.printState();
+        }
+    }
     static float red = 0.1f;
     static float green = 0.12f;
     static float blue = 0.15;
@@ -188,7 +213,7 @@ static bool start()
         glEnable(GL_LINE_SMOOTH);
 
         initGlobals();
-
+        mem.init(200);
         game = new Game();
         run();
         delete game;

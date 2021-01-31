@@ -21,7 +21,7 @@ public:
     size_t reservedMemoryIndices[MAX_MEMORY_INDICES];
     unsigned int numReservedMemoryIndices;
 
-    std::map<unsigned int, MemoryBlockInfo> reservedMemoryInfo;
+    std::map<int, MemoryBlockInfo> reservedMemoryInfo;
     unsigned int numHandles;
     
 public:
@@ -29,9 +29,10 @@ public:
     Memory(size_t size);
     ~Memory();
     bool init(size_t size);
-    unsigned int reserve(size_t size, void* block);
-    bool release(unsigned int handle);
+    int reserve(size_t size, void* block);
+    bool release(int handle);
     void printState();
+    void visualize();
 private:
     void sortMemoryBlockIndices();
 };

@@ -1,6 +1,9 @@
 #include "memory.h"
 #include <memory>
 #include <iostream>
+#include "../globals.h"
+#include "../math/math.h"
+#include "../graphics/renderer.h"
 
 void Memory::sortMemoryBlockIndices()
 {
@@ -39,15 +42,17 @@ bool Memory::init(size_t size)
     return result;
 }
 
-unsigned int Memory::reserve(size_t size, void* block)
+int Memory::reserve(size_t size, void* block)
 {
     if (availableMemory < size)
     {
         std::cout << "[ERROR] Could not assign memory - Not enough space!" << std::endl;
+        return - 1;
     }
-    if (numReservedMemoryIndices >= 500)
+    if (numReservedMemoryIndices >= MAX_MEMORY_INDICES)
     {
         std::cout << "[ERROR] Could not assign memory - Too many allocation instances!" << std::endl;
+        return - 1;
     }
     unsigned int i = 0;
     unsigned int startIndex = reservedMemoryIndices[i];
@@ -61,7 +66,7 @@ unsigned int Memory::reserve(size_t size, void* block)
     while (!blockFound)
     {   
         unsigned int currentMemBlockSize = endIndex - startIndex; 
-        if (startIndex + size <= currentMemBlockSize)
+        if (size <= currentMemBlockSize)
         {
             blockFound = true;
         }
@@ -97,12 +102,12 @@ unsigned int Memory::reserve(size_t size, void* block)
     }
     
     availableMemory -= size;
-    unsigned int handle = numHandles++;
+    int handle = numHandles++;
     reservedMemoryInfo[handle] = {startIndex, end};
     return handle;
 }
 
-bool Memory::release(unsigned int handle)
+bool Memory::release(int handle)
 {
     bool blockReleased = false;
     if (reservedMemoryInfo.find(handle) == reservedMemoryInfo.end())
@@ -161,6 +166,7 @@ bool Memory::release(unsigned int handle)
     }
     if (blockReleased)
     {
+        availableMemory += block.end - block.start;
         reservedMemoryInfo.erase(handle);
     }
     return blockReleased;
@@ -172,7 +178,7 @@ void Memory::printState()
     " - Available memory: " << availableMemory << 
     " - Num reserved blocks: " << reservedMemoryInfo.size() << std::endl;
     std::cout << "Memory block handles" << std::endl << "-------------" << std::endl; 
-    for (std::map<unsigned int,MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin(); it != reservedMemoryInfo.end(); ++it)
+    for (std::map<int,MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin(); it != reservedMemoryInfo.end(); ++it)
     {
         std::cout << it->first << std::endl;
     }
@@ -182,4 +188,21 @@ void Memory::printState()
         std::cout << reservedMemoryIndices[i] << std::endl;
     }
     std::cout << std::endl;
+}
+
+void Memory::visualize()
+{
+    static Vec2 barDim(0.4f, 0.03f);
+    static Vec2 barPos(-0.9f, 0.3f);
+    Quad barQuad(barPos, barPos + Vec2(0, barDim.y), barPos + barDim, barPos + Vec2(barDim.x, 0));
+    g_renderer->submitQuad(barQuad, Vec2(), Vec4(1, 1, 1, 1));
+    static float byteSize = barDim.x / allocationSize;
+    for (std::map<int,MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin(); it != reservedMemoryInfo.end(); ++it)
+    {
+        MemoryBlockInfo block = it->second;
+        Vec2 blockStart = Vec2(byteSize * block.start, 0);
+        Vec2 blockEnd = Vec2(byteSize * block.end, 0);
+        Quad blockQuad(barQuad.point0 + blockStart, barQuad.point1 + blockStart, barQuad.point1 + blockEnd, barQuad.point0 + blockEnd);
+        g_renderer->submitQuad(blockQuad, Vec2(), Vec4(1, 0, 0, 1));
+    }
 }
