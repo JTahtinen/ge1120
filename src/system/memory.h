@@ -33,6 +33,4 @@ public:
     bool release(int handle);
     void printState();
     void visualize();
-private:
-    void sortMemoryBlockIndices();
 };

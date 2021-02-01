@@ -5,10 +5,6 @@
 #include "../math/math.h"
 #include "../graphics/renderer.h"
 
-void Memory::sortMemoryBlockIndices()
-{
-}
-
 Memory::Memory()
     : allocation(nullptr), allocationSize(0), numReservedMemoryIndices(0), availableMemory(0)
 {
@@ -90,12 +86,10 @@ int Memory::reserve(size_t size, void *block)
             {
                 reservedMemoryIndices[j] = reservedMemoryIndices[j + 2];
             }
-            numReservedMemoryIndices = 2;
         }
         else
         {
-            reservedMemoryIndices[i] = reservedMemoryIndices[i + 1];
-            
+            reservedMemoryIndices[i] = reservedMemoryIndices[i + 1];           
         }
         numReservedMemoryIndices -= 2;
     }
