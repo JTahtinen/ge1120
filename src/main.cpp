@@ -95,9 +95,9 @@ static void updateGame()
     }
 */
 
-    static void *pointers[20];
+    static void *pointers[30];
     static unsigned int numPointers = 0;
-    static int memoryHandles[20];
+    static int memoryHandles[30];
     static unsigned int numMemoryHandles = 0;
 
     if (g_input.isKeyTyped(KEY_N))
