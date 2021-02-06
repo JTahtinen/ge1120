@@ -4,6 +4,7 @@
 #include "../globals.h"
 #include "../math/math.h"
 #include "../graphics/renderer.h"
+#include "../defs.h"
 
 Memory::Memory()
     : allocation(nullptr), allocationSize(0), numReservedMemoryIndices(0), availableMemory(0)
@@ -17,12 +18,15 @@ Memory::Memory(size_t size)
 
 Memory::~Memory()
 {
+    free(reservedMemoryIndices);
     free(allocation);
     allocationSize = 0;
 }
 
 bool Memory::init(size_t size)
 {
+    availableHandles.reserve(MAX_MEMORY_ALLOCATIONS);
+    reservedMemoryIndices = (unsigned int*)malloc(sizeof(unsigned int) * MAX_MEMORY_INDICES);
     numHandles = 0;
     numReservedMemoryIndices = 0;
     reservedMemoryIndices[numReservedMemoryIndices++] = 0;
@@ -34,7 +38,7 @@ bool Memory::init(size_t size)
     return result;
 }
 
-int Memory::reserve(size_t size, void *block)
+int Memory::reserve(size_t size, void **block)
 {
     if (availableMemory < size)
     {
@@ -74,7 +78,7 @@ int Memory::reserve(size_t size, void *block)
             endIndex = reservedMemoryIndices[i + 1];
         }
     }
-    void *memory = allocation + startIndex;
+    *block = allocation + startIndex;
 
     unsigned int end = startIndex + size;
 
@@ -89,7 +93,7 @@ int Memory::reserve(size_t size, void *block)
         }
         else
         {
-            reservedMemoryIndices[i] = reservedMemoryIndices[i + 1];           
+            reservedMemoryIndices[i] = reservedMemoryIndices[i + 1];
         }
         numReservedMemoryIndices -= 2;
     }
@@ -99,8 +103,25 @@ int Memory::reserve(size_t size, void *block)
     }
 
     availableMemory -= size;
-    int handle = numHandles++;
+    int handle;
+    if (!availableHandles.empty())
+    {
+        handle = availableHandles.back();
+        availableHandles.pop_back();
+    }
+    else
+    {
+        handle = numHandles++;
+    }
     reservedMemoryInfo[handle] = {startIndex, end};
+
+#ifdef DEBUG
+    if (numReservedMemoryIndices > 1)
+        for (int i = 0; i < numReservedMemoryIndices - 1; ++i)
+        {
+                ASSERT(reservedMemoryIndices[i] != reservedMemoryIndices[i + 1]);
+        }
+#endif
     return handle;
 }
 
@@ -125,8 +146,9 @@ bool Memory::release(int handle)
         {
             if (reservedMemoryIndices[i] == block.start)
             {
-                if (reservedMemoryIndices[i + i] != block.end)
+                if (reservedMemoryIndices[i + 1] != block.end)
                 {
+                    ASSERT(reservedMemoryIndices[i + 1] > block.end);
                     reservedMemoryIndices[i] = block.end;
                     blockReleased = true;
                     break;
@@ -137,7 +159,7 @@ bool Memory::release(int handle)
                     {
                         if (j + 2 < numReservedMemoryIndices)
                         {
-                            reservedMemoryIndices[i] = reservedMemoryIndices[j + 2];
+                            reservedMemoryIndices[j] = reservedMemoryIndices[j + 2];
                         }
                         else
                         {
@@ -147,6 +169,7 @@ bool Memory::release(int handle)
                         }
                     }
                 }
+                break;
             }
             else if (reservedMemoryIndices[i] == block.end)
             {
@@ -168,12 +191,37 @@ bool Memory::release(int handle)
                 break;
             }
         }
+        if (!blockReleased)
+        {
+            reservedMemoryIndices[numReservedMemoryIndices++] = block.start;
+            reservedMemoryIndices[numReservedMemoryIndices++] = block.end;
+            blockReleased = true;
+        }
     }
+    ASSERT(blockReleased);
     if (blockReleased)
     {
         availableMemory += block.end - block.start;
-        reservedMemoryInfo.erase(handle);
+        try
+        {
+            reservedMemoryInfo.erase(handle);
+            availableHandles.push_back(handle);
+        }
+        catch(int e)
+        {
+            message("Exception: %d", e);
+            __debugbreak();
+        }
     }
+#ifdef DEBUG
+    if (numReservedMemoryIndices > 1)
+    {
+        for (int i = 0; i < numReservedMemoryIndices - 1; ++i)
+        {
+            ASSERT(reservedMemoryIndices[i] != reservedMemoryIndices[i + 1]);
+        }
+    }
+#endif
     return blockReleased;
 }
 

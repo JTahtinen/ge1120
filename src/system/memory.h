@@ -1,14 +1,19 @@
 #pragma once
 #include <stdint.h>
+#include <vector>
 #include <map>
 
-#define MAX_MEMORY_INDICES 500
-
+#define MAX_MEMORY_INDICES 60000
+#define MAX_MEMORY_ALLOCATIONS 60000
 struct MemoryBlockInfo
 {
     unsigned int start;
     unsigned int end;
 };
+
+#define KB(val) (val * 1024)
+#define MB(val) (KB(val) * 1024)
+#define GB(val) (MB(val) * 1024)
 
 class Memory
 {
@@ -18,7 +23,9 @@ public:
     size_t allocationSize;
     size_t availableMemory;
 
-    size_t reservedMemoryIndices[MAX_MEMORY_INDICES];
+    std::vector<unsigned int> availableHandles;
+
+    unsigned int* reservedMemoryIndices;
     unsigned int numReservedMemoryIndices;
 
     std::map<int, MemoryBlockInfo> reservedMemoryInfo;
@@ -29,7 +36,7 @@ public:
     Memory(size_t size);
     ~Memory();
     bool init(size_t size);
-    int reserve(size_t size, void* block);
+    int reserve(size_t size, void** block);
     bool release(int handle);
     void printState();
     void visualize();
