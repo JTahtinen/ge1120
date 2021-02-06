@@ -70,7 +70,7 @@ struct Input
 
     Input();
     void update();
-    bool isKeyPressed(Key key) const;
-    bool isKeyTyped(Key key) const;
-    bool isKeyReleased(Key key) const;
+    bool isKeyPressed(unsigned int key) const;
+    bool isKeyTyped(unsigned int key) const;
+    bool isKeyReleased(unsigned int key) const;
 };

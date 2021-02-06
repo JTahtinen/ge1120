@@ -165,17 +165,17 @@ void Input::update()
     }
 }
 
-bool Input::isKeyPressed(Key key) const
+bool Input::isKeyPressed(unsigned int key) const
 {
     return this->keysPressed[key];
 }
 
-bool Input::isKeyTyped(Key key) const
+bool Input::isKeyTyped(unsigned int key) const
 {
     return this->keysTyped[key];
 }
 
-bool Input::isKeyReleased(Key key) const
+bool Input::isKeyReleased(unsigned int key) const
 {
     return this->keysReleased[key];
 }
