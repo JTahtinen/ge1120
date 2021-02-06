@@ -191,7 +191,8 @@ Tile *Game::getTileAtPos(Vec2 worldPos)
     return &tileMap[x + y * worldW];
 }
 
-static int trbYLen;
+static unsigned int memHandles[4];
+static unsigned int currentMemHandle;
 
 TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start)
 {
@@ -256,7 +257,8 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
 
     int yLen = endTileY - startTileY + 1;
     ASSERT(yLen > 0);
-    int *buffer = new int[yLen];
+    int *buffer;
+    memHandles[currentMemHandle++] = g_memory.reserve(sizeof(int) * yLen, (void**)&buffer);
     Vec4 color;
     if (start)
     {
@@ -282,6 +284,7 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
 
 void Game::drawTiles()
 {
+    currentMemHandle = 0;
     Vec2 top;
     Vec2 left;
     Vec2 bottom;
@@ -358,11 +361,15 @@ void Game::drawTiles()
     {
         combinedBuffer[(xEndIndex + i) * 2 + 1] = xEndBuffer1.buffer[i];
     }
-    delete[] xStartBuffer0.buffer;
+    /*delete[] xStartBuffer0.buffer;
     delete[] xEndBuffer0.buffer;
     delete[] xStartBuffer1.buffer;
     delete[] xEndBuffer1.buffer;
-
+*/
+    for (int i = 0; i < 4; ++i)
+    {
+        g_memory.release(memHandles[i]);
+    }
     for (int y = 0; y < totalBufferSize / 2; ++y)
     {
         for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 1; ++x)
