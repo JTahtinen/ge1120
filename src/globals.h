@@ -1,12 +1,15 @@
 #pragma once
 #include "system/event.h"
 #include "system/input.h"
+#include "system/memory.h"
 
 class Texture;
 struct Renderer;
 struct VertexArray;
 class Shader;
 struct IndexBuffer;
+
+extern Memory g_memory;
 
 extern VertexArray* g_entityVAO;
 extern VertexArray* g_thingyVAO;

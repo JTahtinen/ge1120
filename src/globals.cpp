@@ -4,6 +4,8 @@
 #include "graphics/vertexarray.h"
 #include "graphics/renderer.h"
 
+Memory g_memory;
+
 VertexArray *g_entityVAO;
 VertexArray *g_thingyVAO;
 Renderer *g_renderer;
@@ -76,6 +78,7 @@ static void initBuffers()
 
 bool initGlobals()
 {
+    g_memory.init(MB(1));
     INIT(g_entityVAO, VertexArray, );
     INIT(g_thingyVAO, VertexArray, );
     INIT(g_renderer, Renderer, );
