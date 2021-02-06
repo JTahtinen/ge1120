@@ -22,7 +22,6 @@ static SDL_Window *win;
 
 static Game *game;
 
-static Memory mem;
 
 static void updateInputs()
 {
@@ -50,74 +49,47 @@ static void updateWindow()
             break;
         }
     }
-    // GLCALL(glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_INT, 0));
     g_renderer->setView(Mat3::identity());
-    mem.visualize();
+    g_memory.visualize();
     g_renderer->flush();
     SDL_GL_SwapWindow(win);
 }
 
 static void updateGame()
 {
-
-    /*while (true)
-    {
-        char input;
-        std::cout << "CMD: ";
-        std::cin >> input;
-        if (input == 'q')
-        {
-            running = false;
-            return;
-        }
-        if (input == 'w')
-        {
-            std::cout << "Reserved Memory" << std::endl;
-            memoryHandles[numMemoryHandles++] = mem.reserve(10, pointers[numPointers++]);
-        }
-        if (input == 'e')
-        {
-            std::cout << "Memory handle: ";
-            std::cin >> input;
-            int val = (int)(input - '0');
-            if (val > -1 && val < numMemoryHandles)
-            {
-                std::cout << "Released Memory" << std::endl;
-                mem.release(memoryHandles[val]);
-                --numMemoryHandles;
-                --numPointers;
-            }
-        }
-        if (input == 'r')
-        {
-            mem.printState();
-        }
-    }
-*/
-
-    static void *pointers[30];
-    static unsigned int numPointers = 0;
-    static int memoryHandles[30];
+    void *p;
+    static int* memoryHandles = new int[60000];
     static unsigned int numMemoryHandles = 0;
+    ASSERT(numMemoryHandles <= 60000);
 
     if (g_input.isKeyTyped(KEY_N))
     {
-        int handle = mem.reserve(10, pointers[numPointers]);
+        int handle = g_memory.reserve(10, &p);
         if (handle > -1)
         {
             memoryHandles[numMemoryHandles++] = handle;
-            ++numPointers;
         }
-        mem.printState();
+        g_memory.printState();
     }
-    if (g_input.isKeyTyped(KEY_M))
+    if (g_input.isKeyPressed(KEY_M))
     {
-        if (numMemoryHandles > 0)
+        for (int i = 0; i < 10; ++i)
         {
-            mem.release(memoryHandles[numMemoryHandles - 1]);
-            --numMemoryHandles;
-            --numPointers;
-            mem.printState();
+            if (g_input.isKeyTyped(KEY_0 + i))
+            {
+                if (i < numMemoryHandles)
+                {
+                    if (g_memory.release(memoryHandles[i]))
+                    {
+                        for (int j = i; j < numMemoryHandles - 1; ++j)
+                        {
+                            memoryHandles[j] = memoryHandles[j + 1];
+                        }
+                        --numMemoryHandles;
+                    }
+                    g_memory.printState();
+                }
+            }
         }
     }
     static float red = 0.1f;
@@ -168,7 +140,7 @@ static bool start()
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
     {
-        std::cout << "SDL init successful!" << std::endl;
+        message("SDL init successful!\n");
         windowWidth = 1280;
         windowHeight = 720;
         g_aspect = (float)windowWidth / (float)windowHeight;
@@ -198,7 +170,7 @@ static bool start()
 
         if (!win)
         {
-            std::cout << "[ERROR] Could not create window!" << std::endl;
+            message("[ERROR] Could not create window!\n");
             running = false;
             return false;
         }
@@ -213,7 +185,6 @@ static bool start()
         glEnable(GL_LINE_SMOOTH);
 
         initGlobals();
-        mem.init(200);
         game = new Game();
         run();
         delete game;
@@ -229,13 +200,13 @@ static bool start()
 int main()
 {
 #ifdef DEBUG
-    std::cout << "GE1120 DEBUG build" << std::endl;
+    message("GE1120 DEBUG build\n");
 #else
-    std::cout << "GE1120 RELEASE build" << std::endl;
+    message("GE1120 RELEASE build\n");
 #endif
     if (!start())
     {
-        std::cout << "[ERROR] Game initialization failed" << std::endl;
+        message("[ERROR] Game initialization failed\n");
     }
     else
     {
@@ -243,7 +214,7 @@ int main()
         SDL_GL_DeleteContext(glContext);
         SDL_DestroyWindow(win);
     }
-    std::cout << "Exiting program." << std::endl;
+    message("Exiting program.\n");
     IMG_Quit();
     SDL_Quit();
     return 0;
