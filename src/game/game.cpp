@@ -186,8 +186,15 @@ Tile *Game::getTileAtPos(Vec2 worldPos)
 {
     int x = (int)((worldPos.x) / TILE_SIZE);
     int y = (int)((worldPos.y) / TILE_SIZE);
+    return (getTile(x, y));
+}
+
+Tile* Game::getTile(int x, int y)
+{
     if (x < 0 || y < 0 || x >= worldW || y >= worldH)
+    {
         return &voidTile;
+    }
     return &tileMap[x + y * worldW];
 }
 
@@ -252,7 +259,7 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
 
     Vec2 vec = finalEndPoint - finalStartPoint;
 
-    int yLen = endTileY - startTileY + 1;
+    int yLen = endTileY - startTileY + 2;
     ASSERT(yLen > 0);
     int *buffer;
     buffer = (int*)g_memory.reserve(sizeof(int) * yLen);
@@ -276,7 +283,7 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
         buffer[y] = tile->xIndex;
         g_renderer->submitQuad(debugQuad, curScreenPos, color);
     }
-    return {buffer, yLen};
+    return {buffer, yLen,};
 }
 
 void Game::drawTiles()
@@ -365,26 +372,29 @@ void Game::drawTiles()
 
     for (int y = 0; y < totalBufferSize / 2; ++y)
     {
-        for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 1; ++x)
+        for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 2; ++x)
         {
             if (x < 0)
                 continue;
             if (x >= worldW)
                 break;
             ASSERT(x > -1);
-            g_renderer->renderVAO(g_entityVAO, tileMap[x + (bottomTileY + y) * worldW].texture, 
-            Mat3::translation(Vec2(TILE_SIZE * x - HALF_TILE_SIZE, TILE_SIZE * (bottomTileY + y) - HALF_TILE_SIZE)), view);
+            
+            Tile* tile = getTile(x, bottomTileY + y);
+            ASSERT(tile->xIndex >= 0);
+            ASSERT(tile->yIndex >= 0);
+            ASSERT(tile->texture);
+            
+            g_renderer->renderVAO(g_entityVAO, tile->texture, 
+            Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE, TILE_SIZE * (bottomTileY + y))), view);
         }
     }
-    //g_renderer->submitQuad(debugQuad, Vec2(-0.5f, 0.1f));
+#ifdef DEBUG
     g_renderer->submitLine(top, right, {0, 0});
     g_renderer->submitLine(right, bottom, {0, 0});
     g_renderer->submitLine(bottom, left, {0, 0});
     g_renderer->submitLine(left, top, {0, 0});
-  //  g_renderer->submitQuad(debugQuad, top, Vec4(1, 0, 0, 1));
-  //  g_renderer->submitQuad(debugQuad, left, Vec4(0, 1, 0, 1));
-  //  g_renderer->submitQuad(debugQuad, bottom, Vec4(0, 0, 1, 1));
-  //  g_renderer->submitQuad(debugQuad, right, Vec4(1, 0, 1, 1));
+ #endif 
     delete[] combinedBuffer;
 }
 

@@ -18,6 +18,7 @@ struct TileRasterBuffer
 {
     int* buffer;
     int yLength;
+    int yStart;
 };
 
 #define MAX_GAME_ENTITIES (100)
@@ -43,6 +44,7 @@ struct Game
     void drawActor(Actor* e) const;
     Actor* spawnActor(Vec2 pos);
     Tile* getTileAtPos(Vec2 worldPos);
+    Tile* getTile(int x, int y);
     private:
     void drawTiles();
     Vec2 getWorldAbsSize() const;
