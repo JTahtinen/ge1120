@@ -25,9 +25,7 @@ Memory::~Memory()
 
 bool Memory::init(size_t size)
 {
-    availableHandles.reserve(MAX_MEMORY_ALLOCATIONS);
-    reservedMemoryIndices = (unsigned int*)malloc(sizeof(unsigned int) * MAX_MEMORY_INDICES);
-    numHandles = 0;
+    reservedMemoryIndices = (unsigned int *)malloc(sizeof(unsigned int) * MAX_MEMORY_INDICES);
     numReservedMemoryIndices = 0;
     reservedMemoryIndices[numReservedMemoryIndices++] = 0;
     reservedMemoryIndices[numReservedMemoryIndices++] = size;
@@ -38,17 +36,17 @@ bool Memory::init(size_t size)
     return result;
 }
 
-int Memory::reserve(size_t size, void **block)
+void *Memory::reserve(size_t size)
 {
     if (availableMemory < size)
     {
         std::cout << "[ERROR] Could not assign memory - Not enough space!" << std::endl;
-        return -1;
+        return NULL;
     }
     if (numReservedMemoryIndices >= MAX_MEMORY_INDICES)
     {
         std::cout << "[ERROR] Could not assign memory - Too many allocation instances!" << std::endl;
-        return -1;
+        return NULL;
     }
     unsigned int i = 0;
     unsigned int startIndex = reservedMemoryIndices[i];
@@ -56,7 +54,7 @@ int Memory::reserve(size_t size, void **block)
     if (startIndex + size > allocationSize)
     {
         std::cout << "[ERROR] Could not assign memory - Allocation limit reached!" << std::endl;
-        return -1;
+        return NULL;
     }
     bool blockFound = false;
     while (!blockFound)
@@ -71,14 +69,14 @@ int Memory::reserve(size_t size, void **block)
             if (i + 1 == numReservedMemoryIndices)
             {
                 std::cout << "[ERROR] Could not reserve memory - no contiguous blocks of appropriate size!" << std::endl;
-                return -1;
+                return NULL;
             }
             i += 2;
             startIndex = reservedMemoryIndices[i];
             endIndex = reservedMemoryIndices[i + 1];
         }
     }
-    *block = allocation + startIndex;
+    void *block = allocation + startIndex;
 
     unsigned int end = startIndex + size;
 
@@ -103,37 +101,28 @@ int Memory::reserve(size_t size, void **block)
     }
 
     availableMemory -= size;
-    int handle;
-    if (!availableHandles.empty())
-    {
-        handle = availableHandles.back();
-        availableHandles.pop_back();
-    }
-    else
-    {
-        handle = numHandles++;
-    }
-    reservedMemoryInfo[handle] = {startIndex, end};
+
+    reservedMemoryInfo[block] = {startIndex, end};
 
 #ifdef DEBUG
     if (numReservedMemoryIndices > 1)
         for (int i = 0; i < numReservedMemoryIndices - 1; ++i)
         {
-                ASSERT(reservedMemoryIndices[i] != reservedMemoryIndices[i + 1]);
+            ASSERT(reservedMemoryIndices[i] != reservedMemoryIndices[i + 1]);
         }
 #endif
-    return handle;
+    return block;
 }
 
-bool Memory::release(int handle)
+bool Memory::release(void *address)
 {
     bool blockReleased = false;
-    if (reservedMemoryInfo.find(handle) == reservedMemoryInfo.end())
+    if (reservedMemoryInfo.find(address) == reservedMemoryInfo.end())
     {
-        std::cout << "[ERROR] Could not release memory by handle: " << handle << " - Block not found!" << std::endl;
+        std::cout << "[ERROR] Could not release memory by address: " << address << " - Block not found!" << std::endl;
         return false;
     }
-    MemoryBlockInfo block = reservedMemoryInfo[handle];
+    MemoryBlockInfo block = reservedMemoryInfo[address];
     if (numReservedMemoryIndices == 0)
     {
         reservedMemoryIndices[numReservedMemoryIndices++] = block.start;
@@ -204,21 +193,22 @@ bool Memory::release(int handle)
         availableMemory += block.end - block.start;
         try
         {
-            reservedMemoryInfo.erase(handle);
-            availableHandles.push_back(handle);
+            reservedMemoryInfo.erase(address);
         }
-        catch(int e)
+        catch (int e)
         {
             message("Exception: %d", e);
             __debugbreak();
         }
     }
 #ifdef DEBUG
-    if (numReservedMemoryIndices > 1)
+    for (int i = 0; i < numReservedMemoryIndices - 1; ++i)
     {
-        for (int i = 0; i < numReservedMemoryIndices - 1; ++i)
+        if (numReservedMemoryIndices > 1)
         {
-            ASSERT(reservedMemoryIndices[i] != reservedMemoryIndices[i + 1]);
+            {
+                ASSERT(reservedMemoryIndices[i] != reservedMemoryIndices[i + 1]);
+            }
         }
     }
 #endif
@@ -230,7 +220,7 @@ void Memory::printState()
     std::cout << "Total Allocation: " << allocationSize << " - Available memory: " << availableMemory << " - Num reserved blocks: " << reservedMemoryInfo.size() << std::endl;
     std::cout << "Memory block handles" << std::endl
               << "-------------" << std::endl;
-    for (std::map<int, MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin(); it != reservedMemoryInfo.end(); ++it)
+    for (std::map<void*, MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin(); it != reservedMemoryInfo.end(); ++it)
     {
         std::cout << it->first << std::endl;
     }
@@ -250,7 +240,7 @@ void Memory::visualize()
     Quad barQuad(barPos, barPos + Vec2(0, barDim.y), barPos + barDim, barPos + Vec2(barDim.x, 0));
     g_renderer->submitQuad(barQuad, Vec2(), Vec4(1, 1, 1, 1));
     static float byteSize = barDim.x / allocationSize;
-    for (std::map<int, MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin(); it != reservedMemoryInfo.end(); ++it)
+    for (std::map<void*, MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin(); it != reservedMemoryInfo.end(); ++it)
     {
         MemoryBlockInfo block = it->second;
         Vec2 blockStart = Vec2(byteSize * block.start, 0);

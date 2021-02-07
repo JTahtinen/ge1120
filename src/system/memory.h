@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <vector>
 #include <map>
 
 #define MAX_MEMORY_INDICES 60000
@@ -23,21 +22,18 @@ public:
     size_t allocationSize;
     size_t availableMemory;
 
-    std::vector<unsigned int> availableHandles;
-
     unsigned int* reservedMemoryIndices;
     unsigned int numReservedMemoryIndices;
 
-    std::map<int, MemoryBlockInfo> reservedMemoryInfo;
-    unsigned int numHandles;
+    std::map<void*, MemoryBlockInfo> reservedMemoryInfo;
     
 public:
     Memory();
     Memory(size_t size);
     ~Memory();
     bool init(size_t size);
-    int reserve(size_t size, void** block);
-    bool release(int handle);
+    void* reserve(size_t size);
+    bool release(void* address);
     void printState();
     void visualize();
 };
