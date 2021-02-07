@@ -57,17 +57,16 @@ static void updateWindow()
 
 static void updateGame()
 {
-    void *p;
-    static int* memoryHandles = new int[60000];
-    static unsigned int numMemoryHandles = 0;
-    ASSERT(numMemoryHandles <= 60000);
+    static void** pointers = new void*[60000];
+    static unsigned int numPointers = 0;
+    ASSERT(numPointers <= 60000);
 
     if (g_input.isKeyTyped(KEY_N))
     {
-        int handle = g_memory.reserve(10, &p);
-        if (handle > -1)
+        void* p = g_memory.reserve(10);
+        if (p)
         {
-            memoryHandles[numMemoryHandles++] = handle;
+            pointers[numPointers++] = p;
         }
         g_memory.printState();
     }
@@ -77,15 +76,15 @@ static void updateGame()
         {
             if (g_input.isKeyTyped(KEY_0 + i))
             {
-                if (i < numMemoryHandles)
+                if (i < numPointers)
                 {
-                    if (g_memory.release(memoryHandles[i]))
+                    if (g_memory.release(pointers[i]))
                     {
-                        for (int j = i; j < numMemoryHandles - 1; ++j)
+                        for (int j = i; j < numPointers - 1; ++j)
                         {
-                            memoryHandles[j] = memoryHandles[j + 1];
+                            pointers[j] = pointers[j + 1];
                         }
-                        --numMemoryHandles;
+                        --numPointers;
                     }
                     g_memory.printState();
                 }

@@ -78,7 +78,7 @@ static void initBuffers()
 
 bool initGlobals()
 {
-    g_memory.init(MB(1));
+    g_memory.init(KB(1));
     INIT(g_entityVAO, VertexArray, );
     INIT(g_thingyVAO, VertexArray, );
     INIT(g_renderer, Renderer, );
