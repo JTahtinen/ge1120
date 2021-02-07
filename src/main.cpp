@@ -12,6 +12,7 @@
 #include "graphics/vertexarray.h"
 #include "graphics/renderer.h"
 #include "system/memory.h"
+#include "util/vector.h"
 
 static bool running;
 
@@ -21,7 +22,6 @@ static int windowHeight;
 static SDL_Window *win;
 
 static Game *game;
-
 
 static void updateInputs()
 {
@@ -57,13 +57,13 @@ static void updateWindow()
 
 static void updateGame()
 {
-    static void** pointers = new void*[60000];
+    static void **pointers = new void *[60000];
     static unsigned int numPointers = 0;
     ASSERT(numPointers <= 60000);
 
     if (g_input.isKeyTyped(KEY_N))
     {
-        void* p = g_memory.reserve(10);
+        void *p = g_memory.reserve(10);
         if (p)
         {
             pointers[numPointers++] = p;
@@ -91,26 +91,17 @@ static void updateGame()
             }
         }
     }
-    static float red = 0.1f;
-    static float green = 0.12f;
-    static float blue = 0.15;
-    static float colorDir = 1.0f;
-    /* if (colorOffset >= 0.4f)
-        colorDir = -1.0f;
-    else if (colorOffset <= 0.1f)
-        colorDir = 1.0f;
 
-    colorOffset += colorDir * 0.0005f;
-    */
-    // drawEntity(thingyVao, thingyTexture, Vec2(0, 0));
-    //drawEntity(player.vao, player.texture, player.pos);
-    //shader->setUniform2f("u_Offset", player.pos.x, player.pos.y);
     game->update();
     game->render();
-    static Mat3 ident = Mat3::identity();
-    g_basicShader->setUniform4f("u_Color", red, green, blue, 1.0f);
-    //   g_renderer->setView(Mat3::identity());
-    //   g_renderer->submitLine(0, 0, 0.3f, 0.2f, Vec2(0.01f, -0.01f));
+    try
+    {
+        static Mat3 ident = Mat3::identity();
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << e.what() << '\n';
+    }
 }
 
 static void updateSystem()
@@ -185,9 +176,9 @@ static bool start()
 
         initGlobals();
         game = new Game();
+        g_basicShader->setUniform4f("u_Color", 0.3f, 0.6f, 0.1f, 1.0f);
         run();
         delete game;
-        //GLCALL(glDeleteVertexArrays(1, &vao));
     }
     else
     {
@@ -203,6 +194,62 @@ int main()
 #else
     message("GE1120 RELEASE build\n");
 #endif
+
+    Vector<unsigned int> stuff(20);
+    for (int i = 0; i < 20; ++i)
+    {
+        stuff.push_back(i);
+    }
+    while (1)
+    {
+        message("Vector Size: %d\nCapacity: %d\nContent:\n", stuff.size(), stuff.capacity());
+        for (int i = 0; i < stuff.size(); ++i)
+        {
+            message("%d\n", stuff[i]);
+        }
+        char input;
+        message("Input: ");
+        std::cin >> input;
+        message("\n");
+
+        switch (input)
+        {
+        case '1':        
+        {
+            int index;
+            int val;
+            bool valid = false;
+            while (!valid)
+            {
+                message("choose index: ");
+                std::cin >> index;
+                if (index > stuff.size())
+                {
+                    message("Invalid index!\n");
+                    continue;
+                }
+                message("Choose value: ");
+                std::cin >> val;
+                stuff.insert(val, index);
+                valid = true;
+            }
+        }
+        break;
+        case '2':
+        {
+            stuff.erase(0);
+        }
+            break;
+        case '3':
+        {
+            stuff.erase(0, 3);
+        }
+            break;
+        case '0':
+            return 0;
+        }
+    }
+
     if (!start())
     {
         message("[ERROR] Game initialization failed\n");
