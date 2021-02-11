@@ -40,3 +40,9 @@ inline int absINT(int val)
     if (val < 0) return -val;
     return val;
 }
+
+inline int abs(int val)
+{
+    if (val >= 0) return val;
+    return -val;
+}
