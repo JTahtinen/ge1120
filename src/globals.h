@@ -3,11 +3,12 @@
 #include "system/input.h"
 #include "system/memory.h"
 
-class Texture;
+struct Texture;
 struct Renderer;
 struct VertexArray;
 class Shader;
 struct IndexBuffer;
+struct Font;
 
 extern Memory g_memory;
 
@@ -22,6 +23,7 @@ extern IndexBuffer* g_squareLineIBO;
 extern Shader*      g_basicShader;
 extern Shader*      g_lineShader;
 extern Shader*      g_quadShader;
+extern Shader*      g_letterShader;
 
 extern EventContainer g_events; 
 extern Input g_input;
@@ -31,7 +33,11 @@ extern unsigned int g_boundVAOID;
 extern unsigned int g_boundVBOID;
 extern unsigned int g_boundIBOID;
 
+extern Font*        g_arialFont;
+
 extern float g_aspect;
+
+extern float g_frameTime;
 
 extern bool g_enableWireframe;
 

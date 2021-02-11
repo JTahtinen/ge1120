@@ -3,6 +3,7 @@
 #include "graphics/shader.h"
 #include "graphics/vertexarray.h"
 #include "graphics/renderer.h"
+#include "graphics/font.h"
 
 Memory g_memory;
 
@@ -24,6 +25,11 @@ bool g_enableWireframe;
 Shader*      g_basicShader;
 Shader*      g_lineShader;
 Shader*      g_quadShader;
+Shader*      g_letterShader;
+
+Font*        g_arialFont;
+
+float g_frameTime;
 
 float g_aspect;
 
@@ -78,10 +84,12 @@ static void initBuffers()
 
 bool initGlobals()
 {
+    g_frameTime = 0;
     g_memory.init(KB(1));
     INIT(g_entityVAO, VertexArray, );
     INIT(g_thingyVAO, VertexArray, );
     INIT(g_renderer, Renderer, );
+    //g_thingyTexture = Texture::loadTexture("res/fonts/arial.png");
     g_thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
     g_entityTexture = Texture::loadTexture("res/textures/dude.bmp");
 
@@ -101,6 +109,7 @@ bool initGlobals()
     }
     g_basicShader->setUniform1f("u_Aspect", g_aspect);
     g_basicShader->setUniform1i("u_Texture", 0);
+    g_basicShader->setUniform4f("u_Color", 0.0f, 0.0f, 0.0f, 1.0f);
     g_lineShader = Shader::load("res/shaders/line.vs", "res/shaders/line.fs");
     if (!g_lineShader->bind())
     {
@@ -116,9 +125,23 @@ bool initGlobals()
     }
     g_quadShader->setUniform1f("u_Aspect", g_aspect);
 
+    
+    g_letterShader = Shader::load("res/shaders/letter.vs", "res/shaders/letter.fs");
+    if (!g_letterShader->bind())
+    {
+        return false;
+    }
+    
+    g_letterShader->setUniform1i("u_Texture", 0);
+    g_arialFont = Font::loadFont("res/fonts/arial");
+    g_letterShader->setUniform1f("u_Aspect", g_aspect);
+
     g_renderer->shader = g_basicShader;
     g_renderer->lineShader = g_lineShader;
     g_renderer->quadShader = g_quadShader;
+    g_renderer->letterShader = g_letterShader;
+    g_renderer->setFont(g_arialFont);
+    
 
     initBuffers();
     return true;
@@ -136,6 +159,7 @@ void deleteGlobals()
     DEL(g_basicShader);
     DEL(g_lineShader);
     DEL(g_quadShader);
+    DEL(g_letterShader);
     g_boundShaderID = 0;
     g_boundVAOID = 0;
     g_boundVBOID = 0;
