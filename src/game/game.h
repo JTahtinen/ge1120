@@ -3,7 +3,7 @@
 #include "camera.h"
 
 class Shader;
-class Texture;
+struct Texture;
 
 #define TILE_SIZE (0.2f)
 #define HALF_TILE_SIZE (TILE_SIZE * 0.5f)

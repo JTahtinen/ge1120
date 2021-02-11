@@ -11,10 +11,14 @@ static Texture *redTex;
 static Texture *greenTex;
 static Tile voidTile;
 static Quad debugQuad;
+static float speed;
+static float accSpeed;
 
 Game::Game()
     : numActors(0), worldW(50), worldH(40)
 {
+    speed = 1.0f;
+    accSpeed = speed * 2;
     debugQuad = Quad(-0.01f, -0.01f, -0.01f, 0.01f, 0.01f, 0.01f, 0.01f, -0.01f);
     voidTile.texture = nullptr;
     voidTile.xIndex = -1;
@@ -63,7 +67,7 @@ Actor *Game::spawnActor(Vec2 pos)
     e->entity.rotation = 0.0f;
     e->texture = g_entityTexture;
     e->vao = g_entityVAO;
-    e->speed = 0.002f;
+    e->speed = speed;
     actors[numActors++] = e;
     return e;
 }
@@ -73,22 +77,12 @@ void Game::update()
 
     player->entity.vel *= 0;
 
-    /*if (g_input.isKeyPressed(KEY_LEFT))
-    {
-        player->entity.rotation += 0.15f;
-    }
-    if (g_input.isKeyPressed(KEY_RIGHT))
-    {
-        player->entity.rotation -= 0.15f;
-    }*/
+ 
 
-    player->entity.rotation -= g_input.mouseDeltaX * 0.3f;
-    //std::cout << player->entity.rotation << std::endl;
-    //debugCamera.entity.rotation = player->entity.rotation;
+    player->entity.rotation -= g_input.mouseDeltaX * 30.0f * g_frameTime;
     Mat3 playerRotationMat = Mat3::rotation(TO_RADIANS(player->entity.rotation));
     Vec2 playerForward = playerRotationMat * Vec2(0, 1.0f);
     Vec2 playerRight(playerForward.y, -playerForward.x);
-
     if (g_input.isKeyPressed(KEY_A))
     {
         player->entity.vel -= playerRight * player->speed;
@@ -105,7 +99,14 @@ void Game::update()
     {
         player->entity.vel -= playerForward * player->speed;
     }
-
+    if (g_input.isKeyPressed(KEY_LSHIFT))
+    {
+        player->speed = accSpeed;
+    }
+    else
+    {
+        player->speed = speed;
+    }
     if (g_input.isKeyTyped(KEY_K))
     {
         if (currentCamera == &camera)
@@ -117,29 +118,31 @@ void Game::update()
             currentCamera = &camera;
     }
 
+    float playerFrameVel = player->speed * g_frameTime;
+
     if (g_input.isKeyPressed(KEY_LEFT))
     {
-        debugCamera.entity.pos.x -= player->speed;
+        debugCamera.entity.pos.x -= playerFrameVel;
     }
 
     if (g_input.isKeyPressed(KEY_RIGHT))
     {
-        debugCamera.entity.pos.x += player->speed;
+        debugCamera.entity.pos.x += playerFrameVel;
     }
 
     if (g_input.isKeyPressed(KEY_UP))
     {
-        debugCamera.entity.pos.y += player->speed;
+        debugCamera.entity.pos.y += playerFrameVel;
     }
     if (g_input.isKeyPressed(KEY_DOWN))
     {
-        debugCamera.entity.pos.y -= player->speed;
+        debugCamera.entity.pos.y -= playerFrameVel;
     }
 
     for (int i = 0; i < numActors; ++i)
     {
         Actor *e = actors[i];
-        e->entity.pos += e->entity.vel;
+        e->entity.pos += e->entity.vel * g_frameTime;
     }
 
     //player->entity.rotation += 0.05f;
@@ -153,7 +156,7 @@ void Game::update()
         player->entity.rotation += 360.0f;
     }
 
-    camera.entity.pos = player->entity.pos + playerForward * 0.3f;
+    camera.entity.pos = player->entity.pos + playerForward * 0.3f * g_frameTime;
     camera.entity.rotation = player->entity.rotation;
 }
 
@@ -202,64 +205,17 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
 {
     Vec2 worldSize = getWorldAbsSize();
 
-    Vec2 finalStartPoint;
-    Vec2 finalEndPoint;
-
-    if (startPoint.x < 0 && endPoint.x < 0)
-    {
-        finalStartPoint = Vec2(0, 0);
-        finalEndPoint = Vec2(0, 0);
-    }
-
     Vec2 dir = endPoint - startPoint;
 
-    bool startOutOfBounds = false;
-    bool endOutOfBounds = false;
-    if (startPoint.x < 0 && startPoint.y < 0)
-    {
-        finalStartPoint = Vec2(0, 0);
-        startOutOfBounds = true;
-    }
-    if (endPoint.x > worldSize.x && endPoint.y > worldSize.y)
-    {
-        finalEndPoint = Vec2(worldSize.x, worldSize.y);
-        endOutOfBounds = true;
-    }
-
- if (!startOutOfBounds)
-   {
-        finalStartPoint = startPoint;
-        if (startPoint.y < 0)
-        {
-            finalStartPoint.x = getXAtLinePoint(dir, 0);
-        }     
-        if (startPoint.x < 0)
-        {
-            finalStartPoint.y = getYAtLinePoint(dir, 0);
-        }
-   }
-   if (!endOutOfBounds)
-   {
-        finalEndPoint = endPoint;
-        if (endPoint.y > worldSize.y)
-        {
-            finalEndPoint.x = getXAtLinePoint(dir, worldSize.y);
-        }
-        if (endPoint.x > worldSize.x)
-        {
-            finalEndPoint.y = getYAtLinePoint(dir, worldSize.x);
-        }
-    }
 
     //static float halfTile = 0.5f * TILE_SIZE;
-    int startTileX = (int)((finalStartPoint.x) / TILE_SIZE);
-    int startTileY = (int)((finalStartPoint.y ) / TILE_SIZE);
-    int endTileX = (int)((finalEndPoint.x) / TILE_SIZE);
-    int endTileY = (int)((finalEndPoint.y) / TILE_SIZE);
+    int startTileX = (int)((startPoint.x) / TILE_SIZE);
+    int startTileY = (int)((startPoint.y ) / TILE_SIZE);
+    int endTileX = (int)((endPoint.x) / TILE_SIZE);
+    int endTileY = (int)((endPoint.y) / TILE_SIZE);
 
-    Vec2 vec = finalEndPoint - finalStartPoint;
-
-    int yLen = endTileY - startTileY + 2;
+    int yLen = (abs)(endTileY - startTileY + 2);
+    
     ASSERT(yLen > 0);
     int *buffer;
     buffer = (int*)g_memory.reserve(sizeof(int) * yLen);
@@ -274,13 +230,15 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
     }
     for (int y = 0; y < yLen; ++y)
     {
-        Vec2 curScreenPos = finalStartPoint + Vec2(getXAtLinePoint(vec, + y * TILE_SIZE), y * TILE_SIZE);
-        Tile *tile = getTileAtPos(curScreenPos);
-        if (start && tile->xIndex < 0)
-            tile = getTileAtPos(Vec2(0, curScreenPos.y));
-        else if (!start && tile->xIndex > worldW - 1)
-            tile = getTileAtPos(Vec2(worldW, curScreenPos.y));
-        buffer[y] = tile->xIndex;
+        Vec2 curScreenPos = startPoint + Vec2(getXAtLinePoint(dir, + y * TILE_SIZE), y * TILE_SIZE);
+        //Tile *tile = getTileAtPos(curScreenPos);
+        //if (start && tile->xIndex < 0)
+        //    tile = getTileAtPos(Vec2(0, curScreenPos.y));
+        //else if (!start && tile->xIndex > worldW - 1)
+        //    tile = getTileAtPos(Vec2(worldW, curScreenPos.y));
+        //buffer[y] = tile->xIndex;
+        int xIndex = (int)(curScreenPos.x / TILE_SIZE);
+        buffer[y] = xIndex;
         g_renderer->submitQuad(debugQuad, curScreenPos, color);
     }
     return {buffer, yLen,};
@@ -341,7 +299,10 @@ void Game::drawTiles()
     TileRasterBuffer xEndBuffer1 = writeVecToTileRasterBuffer(right, top, false);
 
     int totalBufferSize = (xStartBuffer0.yLength + xStartBuffer1.yLength) * 2;
-    int *combinedBuffer = new int[totalBufferSize];
+
+    ASSERT(totalBufferSize > 0);
+    int* combinedBuffer = (int*)g_memory.reserve(sizeof(int) * totalBufferSize);
+    //int *combinedBuffer = new int[totalBufferSize];
 
     int xStartIndex = 0;
     for (int i = 0; i < xStartBuffer0.yLength; ++i)
@@ -372,6 +333,9 @@ void Game::drawTiles()
 
     for (int y = 0; y < totalBufferSize / 2; ++y)
     {
+        int yIndex = bottomTileY + y;
+        if (yIndex < 0) continue;
+        if (yIndex >= worldH) break;
         for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 2; ++x)
         {
             if (x < 0)
@@ -386,7 +350,7 @@ void Game::drawTiles()
             ASSERT(tile->texture);
             
             g_renderer->renderVAO(g_entityVAO, tile->texture, 
-            Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE, TILE_SIZE * (bottomTileY + y))), view);
+            Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE, TILE_SIZE * yIndex)), view);
         }
     }
 #ifdef DEBUG
@@ -395,7 +359,7 @@ void Game::drawTiles()
     g_renderer->submitLine(bottom, left, {0, 0});
     g_renderer->submitLine(left, top, {0, 0});
  #endif 
-    delete[] combinedBuffer;
+    g_memory.release(combinedBuffer);
 }
 
 Vec2 Game::getWorldAbsSize() const
