@@ -111,6 +111,7 @@ void *Memory::reserve(size_t size)
             ASSERT(reservedMemoryIndices[i] != reservedMemoryIndices[i + 1]);
         }
 #endif
+    ASSERT(block);
     return block;
 }
 
