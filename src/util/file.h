@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 
+
 inline std::string loadTextFile(const std::string &filepath)
 {
     std::string text = "";
