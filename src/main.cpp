@@ -13,6 +13,37 @@
 #include "graphics/renderer.h"
 #include "system/memory.h"
 #include "util/vector.h"
+#include <chrono>
+#include <string>
+#include <sstream>
+
+class Timer
+{
+    std::chrono::steady_clock::time_point _startTime;
+    std::chrono::steady_clock::time_point _currentTime;
+    std::chrono::steady_clock::time_point _lastTime;
+public:
+    inline void start()
+	{
+		_startTime = std::chrono::high_resolution_clock::now();
+		_currentTime = _startTime;
+		_lastTime = _startTime;
+	}
+	unsigned int getElapsedInMillis() const
+	{
+		return (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(_currentTime - _startTime).count();
+	}
+	inline unsigned int getElapsedSinceLastUpdateInMillis() const
+	{
+		return (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(_currentTime - _lastTime).count();
+	}
+	inline void update()
+	{
+		_lastTime = _currentTime;
+		_currentTime = std::chrono::high_resolution_clock::now();
+	}
+};
+
 
 static bool running;
 
@@ -22,6 +53,7 @@ static int windowHeight;
 static SDL_Window *win;
 
 static Game *game;
+static Timer frameTimer;
 
 static void updateInputs()
 {
@@ -50,6 +82,7 @@ static void updateWindow()
         }
     }
     g_renderer->setView(Mat3::identity());
+    //g_renderer->submitText("Hello people", Vec2(-0.2f, 0.3f));
     g_memory.visualize();
     g_renderer->flush();
     SDL_GL_SwapWindow(win);
@@ -91,17 +124,18 @@ static void updateGame()
             }
         }
     }
-
+    frameTimer.update();
+    unsigned int frameTimeInMillis = frameTimer.getElapsedSinceLastUpdateInMillis();
+    g_frameTime = (float)frameTimeInMillis * 0.001;
     game->update();
+    std::ostringstream ss;
+    ss << frameTimeInMillis;
+    std::string ftString = "frametime: ";
+    ftString.append(ss.str());
+    ftString.append("ms");
+    g_renderer->submitText(ftString, Vec2(-0.95f, 0.5f));
+    
     game->render();
-    try
-    {
-        static Mat3 ident = Mat3::identity();
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << e.what() << '\n';
-    }
 }
 
 static void updateSystem()
@@ -112,7 +146,7 @@ static void updateSystem()
 static void run()
 {
     running = true;
-
+    frameTimer.start();
     while (running)
     {
         GLCALL(glClear(GL_DEPTH_BUFFER_BIT));
@@ -174,11 +208,18 @@ static bool start()
         glLineWidth(2);
         glEnable(GL_LINE_SMOOTH);
 
-        initGlobals();
-        game = new Game();
-        g_basicShader->setUniform4f("u_Color", 0.3f, 0.6f, 0.1f, 1.0f);
-        run();
-        delete game;
+        IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
+
+        if (!initGlobals())
+        {
+            message("[ERROR] Globals init failed!\n");
+        }
+        else
+        {
+            game = new Game();
+            run();
+            delete game;
+        }
     }
     else
     {
@@ -194,7 +235,7 @@ int main()
 #else
     message("GE1120 RELEASE build\n");
 #endif
-
+    /*
     Vector<unsigned int> stuff(20);
     for (int i = 0; i < 20; ++i)
     {
@@ -249,7 +290,7 @@ int main()
             return 0;
         }
     }
-
+    */
     if (!start())
     {
         message("[ERROR] Game initialization failed\n");
