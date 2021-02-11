@@ -1,12 +1,14 @@
 #pragma once
 #include <string>
 
-class Texture
+struct Texture
 {
-    unsigned int _id;
-    std::string _filepath;
-    int _index;
-    bool _valid;
+    unsigned int id;
+    std::string filepath;
+    int index;
+    bool valid;
+    unsigned int widthInPixels;
+    unsigned int heightInPixels;
 
 public:
     Texture();
