@@ -5,6 +5,7 @@
 #include "../math/math.h"
 #include <iostream>
 #include "../globals.h"
+#include "font.h"
 
 struct QuadData
 {
@@ -21,16 +22,34 @@ struct LineData
     Vec3 view[3];
 };
 
+struct LetterData
+{
+    Vec2 pos;
+    Vec2 texCoord;
+};
+
 #define MAX_RENDERABLES (60000)
 #define QUAD_VERTEX_SIZE (sizeof(QuadData))
 #define QUAD_SIZE (QUAD_VERTEX_SIZE * 4)
 #define QUAD_BUFFER_SIZE (QUAD_SIZE * MAX_RENDERABLES)
 #define QUAD_INDICES_SIZE (MAX_RENDERABLES * 6)
 
+#define LETTER_VERTEX_SIZE (sizeof(LetterData))
+#define LETTER_SIZE (LETTER_VERTEX_SIZE * 4)
+#define LETTER_BUFFER_SIZE (LETTER_SIZE * MAX_RENDERABLES)
+#define LETTER_INDICES_SIZE (MAX_RENDERABLES * 6)
+
 Renderer::Renderer()
-    : numBatchLineVertices(0), numBatchQuadVertices(0), numBatchQuadIndices(0)
+    : numBatchLineVertices(0)
+    , numBatchLineIndices(0)
+    , numBatchQuadVertices(0)
+    , numBatchQuadIndices(0)
+    , numBatchLetterVertices(0)
+    , numBatchLetterIndices(0)
 {
     viewMatrix = Mat3::identity();
+
+    // LINE BATCH INIT
     lineBatchVAO = new VertexArray();
     lineBatchVAO->bind();
     Buffer *lineVBO = new Buffer();
@@ -47,6 +66,7 @@ Renderer::Renderer()
     lineVBO->setLayout(&lineLayout);
     lineBatchVAO->addBuffer(lineVBO);
 
+    // QUAD BATCH INIT
     quadBatchVAO = new VertexArray();
     quadBatchVAO->bind();
     quadBatchIBO = new IndexBuffer();
@@ -79,6 +99,34 @@ Renderer::Renderer()
     }
     quadVBO->setLayout(&quadLayout);
     quadBatchVAO->addBuffer(quadVBO);
+
+    //LETTER BATCH INIT
+   
+    letterBatchVAO = new VertexArray();
+    letterBatchVAO->bind();
+    letterBatchIBO = new IndexBuffer();
+    unsigned int *letterIndices = new unsigned int[LETTER_INDICES_SIZE];
+    offset = 0;
+    for (int i = 0; i < LETTER_INDICES_SIZE; i += 6)
+    {
+        letterIndices[i + 0] = 0 + offset;
+        letterIndices[i + 1] = 1 + offset;
+        letterIndices[i + 2] = 2 + offset;
+        letterIndices[i + 3] = 2 + offset;
+        letterIndices[i + 4] = 3 + offset;
+        letterIndices[i + 5] = 0 + offset;
+        offset += 4;
+    }
+    letterBatchIBO->bind();
+    letterBatchIBO->setData(letterIndices, LETTER_INDICES_SIZE);
+    delete[] letterIndices;
+    Buffer *letterVBO = new Buffer();
+    letterVBO->setData(NULL, LETTER_BUFFER_SIZE, GL_DYNAMIC_DRAW);
+    BufferLayout letterLayout;
+    letterLayout.addLayoutElement(GL_FLOAT, 2);
+    letterLayout.addLayoutElement(GL_FLOAT, 2);
+    letterVBO->setLayout(&letterLayout);
+    letterBatchVAO->addBuffer(letterVBO);
 }
 
 Renderer::~Renderer()
@@ -237,7 +285,64 @@ void Renderer::submitQuad(float x0, float y0, float x1, float y1, float x2, floa
 
     numBatchQuadIndices += 6;
 
-    glUnmapBuffer(GL_ARRAY_BUFFER);
+    GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));
+}
+
+void Renderer::submitText(const std::string& text, Vec2 pos, float scale)
+{
+    if (!font)
+    {
+        message("[ERROR] Could not render text - Font was NULL!\n");
+        return;
+    }
+    letterBatchVAO->bind();
+    Buffer* buffer = letterBatchVAO->getBuffer(0);
+    buffer->bind();
+    letterData = (LetterData*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + numBatchLetterVertices;
+    float xAdvance = 0;
+    for (int i = 0; i < text.size(); ++i)
+    {
+        char c = text[i];
+        if (c == ' ')
+        {
+            xAdvance += 0.05f * scale;
+            continue;
+        }
+        Letter* l = font->getLetter(c);
+        if (!l)
+        {
+            continue;
+        }
+
+        float xOff = l->xOffset;
+        float yOff = (font->_base - l->height - l->yOffset);
+        
+        letterData->pos.x = xAdvance + pos.x + xOff * scale;
+        letterData->pos.y = pos.y + yOff * scale;        
+        letterData->texCoord = Vec2(l->x, l->y + l->height);
+        ++letterData;
+        
+        letterData->pos.x = xAdvance + pos.x + xOff * scale;
+        letterData->pos.y = pos.y + (l->height + yOff) * scale;        
+        letterData->texCoord = Vec2(l->x, l->y);
+        ++letterData;
+        
+        letterData->pos.x = xAdvance + pos.x + (l->width + xOff) * scale;
+        letterData->pos.y = pos.y + (l->height + yOff) * scale;
+        letterData->texCoord = Vec2(l->x + l->width, l->y);
+        ++letterData;
+        
+        letterData->pos.x = xAdvance + pos.x + (l->width + xOff) * scale;
+        letterData->pos.y = pos.y + yOff * scale;
+        letterData->texCoord = Vec2(l->x + l->width, l->y + l->height);
+        ++letterData;
+
+        xAdvance += l->xAdvance * scale;
+        numBatchLetterVertices += 4;
+        numBatchLetterIndices += 6;
+    }
+    
+    GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));
 }
 
 void Renderer::submitQuad(Vec2 point0, Vec2 point1, Vec2 point2, Vec2 point3, Vec2 position, Vec4 color)
@@ -255,9 +360,15 @@ void Renderer::setView(Mat3 view)
     viewMatrix = view;
 }
 
+void Renderer::setFont(Font* font)
+{
+    this->font = font;
+}
+
+// Currently the flush method is arranged only for testing purposes
+
 void Renderer::flush()
 {
-    // TODO: DRY cleaning
     lineBatchVAO->bind();
     g_squareLineIBO->bind();
     lineShader->bind();
@@ -270,4 +381,12 @@ void Renderer::flush()
     GLCALL(glDrawElements(GL_TRIANGLES, numBatchQuadIndices, GL_UNSIGNED_INT, 0));
     numBatchQuadVertices = 0;
     numBatchQuadIndices = 0;
+
+    letterBatchVAO->bind();
+    letterBatchIBO->bind();
+    font->_atlas->bind();
+    letterShader->bind();
+    GLCALL(glDrawElements(GL_TRIANGLES, numBatchLetterIndices, GL_UNSIGNED_INT, 0));
+    numBatchLetterVertices = 0;
+    numBatchLetterIndices = 0;
 }
