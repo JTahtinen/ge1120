@@ -14,6 +14,20 @@ public:
         reserve(capacity);
     }
 
+    inline Vector(const Vector& other)
+        : _size(other._size)
+        , _capacity(other._capacity)
+    {
+        if (_capacity > 0)
+        {
+            _data = new T[_capacity];
+            for (int i = 0; i < _size; ++i)
+            {
+                _data[i] = other[i];
+            }
+        }
+    }
+    
     inline Vector()
         : Vector(10)
     {
@@ -48,13 +62,13 @@ public:
         }
     }
 
-    inline void push_back(T unit)
+    inline void push_back(T value)
     {
         if (_size == _capacity)
         {
             double_capacity();
         }
-        _data[_size++] = unit;
+        _data[_size++] = value;
     }
 
     inline void pop_back()
@@ -62,7 +76,7 @@ public:
         --_size;
     }
 
-    inline void insert(T unit, unsigned int index)
+    inline void insert(T value, unsigned int index)
     {
         if (index > _size)
         {
@@ -81,7 +95,7 @@ public:
             {
                 _data[i] = _data[i - 1];
             }
-        _data[index] = unit;
+        _data[index] = value;
         ++_size;
     }
 
@@ -126,7 +140,12 @@ public:
         return _capacity;
     }
 
-    T operator[](unsigned int index)
+    const T& operator[](unsigned int index) const
+    {
+        return _data[index];
+    }
+
+    T& operator[](unsigned int index)
     {
         return _data[index];
     }
