@@ -50,10 +50,8 @@ Game::Game()
 
 Game::~Game()
 {
-    delete redTex;
-    redTex = nullptr;
-    delete greenTex;
-    greenTex = nullptr;
+    g_memory.release(redTex);
+    g_memory.release(greenTex);
 }
 Actor *Game::spawnActor(Vec2 pos)
 {
