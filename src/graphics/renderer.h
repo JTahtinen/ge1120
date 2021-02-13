@@ -2,7 +2,8 @@
 #include "../math/vec2.h"
 #include "../math/mat3.h"
 #include "../math/math.h"
-#include "vertexarray.h"
+#include "batch.h"
+
 #include <string>
 
 struct Font;
@@ -21,31 +22,27 @@ struct LineData;
 struct QuadData;
 struct LetterData;
 
+struct Line
+{
+    Vec2 p1;
+    Vec2 p2;
+};
+
 struct Renderer
 {
-    Shader*         shader {nullptr};
-    Shader*         lineShader {nullptr};
-    Shader*         quadShader {nullptr};
-    Shader*         letterShader {nullptr};
-    VertexArray*    lineBatchVAO;
-    VertexArray*    quadBatchVAO;
-    VertexArray*    letterBatchVAO;
-    LineData*       lineData;
-    Mat3            viewMatrix;
-    Font*           font;
-    unsigned int    numBatchLineVertices;
-    unsigned int    numBatchLineIndices;
-    QuadData*       quadData;
-    IndexBuffer*    quadBatchIBO;
-    unsigned int    numBatchQuadVertices;
-    unsigned int    numBatchQuadIndices;
-    LetterData*     letterData;
-    IndexBuffer*    letterBatchIBO;
-    unsigned int    numBatchLetterVertices;
-    unsigned int    numBatchLetterIndices;
+    Shader*             shader {nullptr};
+    Shader*             lineShader {nullptr};
+    Shader*             quadShader {nullptr};
+    Shader*             letterShader {nullptr};
+    Batch<Line>         lineBatch;
+    Batch<Quad>         quadBatch;
+    Batch<std::string>  letterBatch;
+    Mat3                viewMatrix;
+    Font*               font;
     Renderer();
     ~Renderer();
-    void renderVAO(VertexArray* vao, const Texture* texture, const Mat3& model, const Mat3& view,  RenderType renderType = RENDER_SOLID);
+    void renderVAO(VertexArray* vao, const Texture* texture, const Mat3& model,
+                   const Mat3& view, RenderType renderType = RENDER_SOLID);
     void renderLine(VertexArray* vao);
     void submitLine(float x0, float y0, float x1, float y1, Vec2 offset);
     void submitLine(Vec2 point0, Vec2 point1, Vec2 offset);
