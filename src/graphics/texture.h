@@ -5,7 +5,6 @@ struct Texture
 {
     unsigned int id;
     std::string filepath;
-    int index;
     bool valid;
     unsigned int widthInPixels;
     unsigned int heightInPixels;

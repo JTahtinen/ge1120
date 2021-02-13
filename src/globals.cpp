@@ -85,7 +85,7 @@ static void initBuffers()
 bool initGlobals()
 {
     g_frameTime = 0;
-    g_memory.init(KB(1));
+    g_memory.init(GB(1));
     INIT(g_entityVAO, VertexArray, );
     INIT(g_thingyVAO, VertexArray, );
     INIT(g_renderer, Renderer, );
@@ -152,8 +152,10 @@ void deleteGlobals()
     DEL(g_entityVAO);
     DEL(g_thingyVAO);
     DEL(g_renderer);
-    DEL(g_entityTexture);
-    DEL(g_thingyTexture);
+    // DEL(g_entityTexture);
+    //DEL(g_thingyTexture);
+    g_entityTexture->~Texture();
+    g_thingyTexture->~Texture();
     DEL(g_squareFillIBO);
     DEL(g_squareLineIBO);
     DEL(g_basicShader);

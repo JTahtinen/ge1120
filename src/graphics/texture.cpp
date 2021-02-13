@@ -45,8 +45,10 @@ Texture* Texture::loadTexture(const std::string &filepath)
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+        //result = new Texture(id, filepath);
+        result = (Texture*)g_memory.reserve(sizeof(Texture));
 
-        result = new Texture(id, filepath);
+        *result = Texture(id, filepath);
         result->widthInPixels = texImage->w;
         result->heightInPixels = texImage->h;
     }
