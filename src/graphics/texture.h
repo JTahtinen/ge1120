@@ -12,6 +12,7 @@ struct Texture
 public:
     Texture();
     ~Texture();
+    void del();
     void bind(unsigned int slot = 0) const;
     static Texture* loadTexture(const std::string& filepath);
 private:

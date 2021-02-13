@@ -19,6 +19,10 @@ Texture::Texture()
 
 Texture::~Texture()
 {
+}
+
+void Texture::del()
+{
     GLCALL(glDeleteTextures(1, &id));
 }
 
