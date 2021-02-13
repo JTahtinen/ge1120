@@ -152,8 +152,8 @@ void deleteGlobals()
     DEL(g_entityVAO);
     DEL(g_thingyVAO);
     DEL(g_renderer);
-    // DEL(g_entityTexture);
-    //DEL(g_thingyTexture);
+    g_entityTexture->del();
+    g_thingyTexture->del();
     g_entityTexture->~Texture();
     g_thingyTexture->~Texture();
     DEL(g_squareFillIBO);
