@@ -9,10 +9,14 @@
 
 static Texture *redTex;
 static Texture *greenTex;
+static Texture* wallTex;
 static Tile voidTile;
+static Tile thingyTile;
+static Tile wallTile;
 static Quad debugQuad;
 static float speed;
 static float accSpeed;
+
 
 Game::Game()
     : numActors(0), worldW(50), worldH(40)
@@ -21,11 +25,17 @@ Game::Game()
     accSpeed = speed * 2;
     debugQuad = Quad(-0.01f, -0.01f, -0.01f, 0.01f, 0.01f, 0.01f, 0.01f, -0.01f);
     voidTile.texture = nullptr;
-    voidTile.xIndex = -1;
-    voidTile.yIndex = -1;
+    //voidTile.xIndex = -1;
+    //voidTile.yIndex = -1;
+    voidTile.barrier = true;
+    thingyTile.texture = g_thingyTexture;
+    thingyTile.barrier = false;
     redTex = Texture::loadTexture("res/textures/red.bmp");
     greenTex = Texture::loadTexture("res/textures/green.bmp");
-    player = spawnActor(Vec2(3.5f, 3.25f));
+    wallTex = Texture::loadTexture("res/textures/walltile.bmp");
+    wallTile.barrier = true;
+    wallTile.texture = wallTex;
+    player = spawnActor(Vec2(3.0f, 3.25f));
     //player->entity.rotation = 45.0f;
     camera.entity.pos = player->entity.pos;
     camera.entity.rotation = 0;
@@ -35,15 +45,20 @@ Game::Game()
     {
         spawnActor(Vec2(0.7f + i * 0.4f, 0));
     }
-    tileMap = new Tile[worldW * worldH];
+    tileMap = new Tile*[worldW * worldH];
     for (int y = 0; y < worldH; ++y)
     {
         for (int x = 0; x < worldW; ++x)
         {
-            Tile *tile = &tileMap[x + y * worldW];
-            tile->texture = g_thingyTexture;
-            tile->xIndex = x;
-            tile->yIndex = y;
+            int index = x + y * worldW;
+            if (y % 5 == 0 && x % 8 == 0)
+            {
+                tileMap[index] = &wallTile;
+            }
+            else
+            {
+                tileMap[x + y * worldW] = &thingyTile;
+            }
         }
     }
 }
@@ -52,6 +67,7 @@ Game::~Game()
 {
     g_memory.release(redTex);
     g_memory.release(greenTex);
+    g_memory.release(wallTex);
 }
 Actor *Game::spawnActor(Vec2 pos)
 {
@@ -72,11 +88,7 @@ Actor *Game::spawnActor(Vec2 pos)
 
 void Game::update()
 {
-
     player->entity.vel *= 0;
-
- 
-
     player->entity.rotation -= g_input.mouseDeltaX * 30.0f * g_frameTime;
     Mat3 playerRotationMat = Mat3::rotation(TO_RADIANS(player->entity.rotation));
     Vec2 playerForward = playerRotationMat * Vec2(0, 1.0f);
@@ -140,8 +152,21 @@ void Game::update()
     for (int i = 0; i < numActors; ++i)
     {
         Actor *e = actors[i];
-        e->entity.pos += e->entity.vel * g_frameTime;
+        if (e->entity.vel.length() > 0)
+        {
+            Vec2 newVel = checkTileCollision(e->entity.pos, e->entity.vel * g_frameTime);
+            e->entity.pos += newVel;
+        }
     }
+
+    Tile* currentPlayerTile = getTileAtPos(player->entity.pos);
+
+    if (currentPlayerTile->barrier)
+    {
+        g_renderer->submitText("COLLISION!", Vec2(0, 0.3f), 1.0f);
+    }
+
+    
 
     //player->entity.rotation += 0.05f;
     while (player->entity.rotation > 360.0f)
@@ -190,14 +215,52 @@ Tile *Game::getTileAtPos(Vec2 worldPos)
     return (getTile(x, y));
 }
 
+Vec2 Game::getTileIndexAt(Vec2 worldPos)
+{
+    Vec2 result(worldPos.x / TILE_SIZE, worldPos.y / TILE_SIZE);
+    return result;
+}
+
 Tile* Game::getTile(int x, int y)
 {
     if (x < 0 || y < 0 || x >= worldW || y >= worldH)
     {
         return &voidTile;
     }
-    return &tileMap[x + y * worldW];
+    return tileMap[x + y * worldW];
 }
+
+Vec2 Game::checkTileCollision(Vec2 pos, Vec2 vel)
+{
+    Vec2 nextPos = pos + vel;
+    Tile* tile = getTileAtPos(nextPos);
+    if (!tile->barrier)
+    {
+        return vel;
+    }
+    float newXVel;
+    float newYVel;
+    Tile* xTile = getTileAtPos(Vec2(nextPos.x, pos.y));
+    Tile* yTile = getTileAtPos(Vec2(pos.x, nextPos.y));
+    if (!xTile->barrier) newXVel = vel.x;
+    else
+    {
+        int xDir = vel.x > 0 ? 0 : 1;
+        
+        newXVel = ((int)((nextPos.x + xDir * TILE_SIZE)/ TILE_SIZE ) * TILE_SIZE) - pos.x - !xDir * 0.001f;
+        
+    }
+    if (!yTile->barrier) newYVel = vel.y;
+    else
+    {
+        int yDir = vel.y > 0 ? 0 : 1;
+        
+        newYVel = ((int)((nextPos.y + yDir * TILE_SIZE)/ TILE_SIZE) * TILE_SIZE) - pos.y - !yDir * 0.001f;
+        
+    }
+    return Vec2(newXVel, newYVel);
+}
+        
 
 TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start)
 {
@@ -206,7 +269,6 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
     Vec2 dir = endPoint - startPoint;
 
 
-    //static float halfTile = 0.5f * TILE_SIZE;
     int startTileX = (int)((startPoint.x) / TILE_SIZE);
     int startTileY = (int)((startPoint.y ) / TILE_SIZE);
     int endTileX = (int)((endPoint.x) / TILE_SIZE);
@@ -229,12 +291,6 @@ TileRasterBuffer Game::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint
     for (int y = 0; y < yLen; ++y)
     {
         Vec2 curScreenPos = startPoint + Vec2(getXAtLinePoint(dir, + y * TILE_SIZE), y * TILE_SIZE);
-        //Tile *tile = getTileAtPos(curScreenPos);
-        //if (start && tile->xIndex < 0)
-        //    tile = getTileAtPos(Vec2(0, curScreenPos.y));
-        //else if (!start && tile->xIndex > worldW - 1)
-        //    tile = getTileAtPos(Vec2(worldW, curScreenPos.y));
-        //buffer[y] = tile->xIndex;
         int xIndex = (int)(curScreenPos.x / TILE_SIZE);
         buffer[y] = xIndex;
         g_renderer->submitQuad(debugQuad, curScreenPos, color);
@@ -250,7 +306,7 @@ void Game::drawTiles()
     Vec2 right;
 
     float camRot = camera.entity.rotation;
-    //  std::cout << camRot << std::endl;
+
 
     if (camRot >= 0.0f && camRot < 90.0f)
     {
@@ -281,15 +337,15 @@ void Game::drawTiles()
         left = camera.getBottomLeft();
     }
 
-    Tile *topTile = getTileAtPos(top);
-    Tile *leftTile = getTileAtPos(left);
-    Tile *rightTile = getTileAtPos(right);
-    Tile *bottomTile = getTileAtPos(bottom);
+    Vec2 topTile = getTileIndexAt(top);
+    Vec2 leftTile = getTileIndexAt(left);
+    Vec2 rightTile = getTileIndexAt(right);
+    Vec2 bottomTile = getTileIndexAt(bottom);
 
-    int topTileY = topTile->yIndex;
-    int bottomTileY = bottomTile->yIndex;
-    int leftTileY = leftTile->yIndex;
-    int rightTileY = rightTile->yIndex;
+    int topTileY = (int)topTile.y;
+    int bottomTileY = (int)bottomTile.y;
+    int leftTileY = (int)leftTile.y;
+    int rightTileY = (int)rightTile.y;
 
     TileRasterBuffer xStartBuffer0 = writeVecToTileRasterBuffer(bottom, left, true);
     TileRasterBuffer xEndBuffer0 = writeVecToTileRasterBuffer(bottom, right, false);
@@ -343,12 +399,13 @@ void Game::drawTiles()
             ASSERT(x > -1);
             
             Tile* tile = getTile(x, bottomTileY + y);
-            ASSERT(tile->xIndex >= 0);
-            ASSERT(tile->yIndex >= 0);
+//            ASSERT(tile->xIndex >= 0);
+//            ASSERT(tile->yIndex >= 0);
             ASSERT(tile->texture);
             
             g_renderer->renderVAO(g_entityVAO, tile->texture, 
-            Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE, TILE_SIZE * yIndex)), view);
+            Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE,
+                                   TILE_SIZE * yIndex + HALF_TILE_SIZE)), view);
         }
     }
 #ifdef DEBUG
