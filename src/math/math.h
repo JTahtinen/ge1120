@@ -46,3 +46,15 @@ inline int abs(int val)
     if (val >= 0) return val;
     return -val;
 }
+
+inline bool valIsBetween(float val, float min, float max)
+{
+    bool result = (val >= min && val <= max);
+    return result;
+}
+
+inline bool vec2isBetween(Vec2 vec, Vec2 min, Vec2 max)
+{
+    bool result = (valIsBetween(vec.x, min.x, max.x) && valIsBetween(vec.y, min.y, max.y));
+    return result;
+}
