@@ -15,7 +15,6 @@
 #include "util/vector.h"
 #include <chrono>
 #include <string>
-#include <sstream>
 
 class Timer
 {
@@ -82,7 +81,6 @@ static void updateWindow()
         }
     }
     g_renderer->setView(Mat3::identity());
-    //g_renderer->submitText("Hello people", Vec2(-0.2f, 0.3f));
     g_memory.visualize();
     g_renderer->flush();
     SDL_GL_SwapWindow(win);
@@ -126,14 +124,9 @@ static void updateGame()
     }
     frameTimer.update();
     unsigned int frameTimeInMillis = frameTimer.getElapsedSinceLastUpdateInMillis();
-    g_frameTime = (float)frameTimeInMillis * 0.001;
+    g_frameTime = (float)frameTimeInMillis * 0.001f;
     game->update();
-    std::ostringstream ss;
-    ss << frameTimeInMillis;
-    std::string ftString = "frametime: ";
-    ftString.append(ss.str());
-    ftString.append("ms");
-    g_renderer->submitText(ftString, Vec2(-0.95f, 0.5f));
+    g_renderer->submitText("frametime: " + std::to_string(frameTimeInMillis)+ "ms", Vec2(-0.95f, 0.5f));
     
     game->render();
 }
@@ -194,7 +187,7 @@ static bool start()
 
         if (!win)
         {
-            message("[ERROR] Could not create window!\n");
+            err("Could not create window!\n");
             running = false;
             return false;
         }
