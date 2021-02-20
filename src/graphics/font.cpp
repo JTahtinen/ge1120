@@ -22,13 +22,16 @@ Font* Font::loadFont(std::string filepath)
         return nullptr;
     }
 
+
+    Font* font = new Font();
     unsigned int texWidth = atlas->widthInPixels;
     unsigned int texHeight = atlas->heightInPixels;
 
     std::istringstream ss(fontFile);
     std::string line;
-    Vector<Letter> letters;
-    int i = 0;
+    Vector<Letter>& letters = font->_letters;
+    //letters.reserve(100);
+    unsigned int i = 0;
     bool firstIdSkipped = false; // The font file contains "id:" that we want to skip
     bool baseFound = false;
     float base = 0.0f;
@@ -90,18 +93,23 @@ Font* Font::loadFont(std::string filepath)
 		}
 		
     }
-
-    Font* font = new Font(letters, atlas, base, filepath);
+    
+    font->_atlas = atlas;
+    font->_base = base;
+    font->_filepath = filepath;
+    
     return font;
 }
 
-Font::Font(Vector<Letter> letters, Texture* atlas, float base, std::string filepath)
-    : _letters(letters)
-    , _atlas(atlas)
-    , _base(base)
-    , _filepath(filepath)
-    , _id(nextId())
+Font::Font()
+    :
+     _id(nextId())
 {
+}
+
+Font::~Font()
+{
+    _atlas->del();    
 }
 
 Letter* Font::getLetter(char c)

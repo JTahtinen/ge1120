@@ -23,7 +23,8 @@ struct Font
 public:
     static Font* loadFont(std::string filepath);
     Letter* getLetter(char c);
+    ~Font();
 private:
-    Font(Vector<Letter> letters, Texture* atlas, float base, std::string filepath);
+    Font();
     static unsigned int nextId();
 };
