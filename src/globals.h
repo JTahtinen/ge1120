@@ -9,6 +9,7 @@ struct VertexArray;
 class Shader;
 struct IndexBuffer;
 struct Font;
+struct Tile;
 
 extern Memory g_memory;
 
@@ -17,8 +18,16 @@ extern VertexArray* g_thingyVAO;
 extern Renderer* g_renderer;
 extern Texture* g_entityTexture;
 extern Texture* g_thingyTexture;
+extern Texture* g_redTex;
+extern Texture* g_greenTex;
+extern Texture* g_wallTex;
+
 extern IndexBuffer* g_squareFillIBO;
 extern IndexBuffer* g_squareLineIBO;
+
+extern Tile* g_voidTile;
+extern Tile* g_thingyTile;
+extern Tile* g_wallTile;
 
 extern Shader*      g_basicShader;
 extern Shader*      g_lineShader;
@@ -41,5 +50,5 @@ extern float g_frameTime;
 
 extern bool g_enableWireframe;
 
-bool initGlobals();
-void deleteGlobals();
+extern bool initGlobals();
+extern void deleteGlobals();

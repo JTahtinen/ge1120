@@ -4,6 +4,7 @@
 #include "graphics/vertexarray.h"
 #include "graphics/renderer.h"
 #include "graphics/font.h"
+#include "game/tilemap.h"
 
 Memory g_memory;
 
@@ -12,8 +13,18 @@ VertexArray *g_thingyVAO;
 Renderer *g_renderer;
 Texture *g_entityTexture;
 Texture *g_thingyTexture;
+Texture *g_redTex;
+Texture *g_greenTex;
+Texture *g_wallTex;
 IndexBuffer *g_squareFillIBO;
 IndexBuffer *g_squareLineIBO;
+
+Tile* g_voidTile;
+Tile* g_thingyTile;
+Tile* g_wallTile;
+
+
+
 EventContainer g_events;
 Input g_input;
 unsigned int g_boundShaderID;
@@ -89,10 +100,13 @@ bool initGlobals()
     INIT(g_entityVAO, VertexArray, );
     INIT(g_thingyVAO, VertexArray, );
     INIT(g_renderer, Renderer, );
-    //g_thingyTexture = Texture::loadTexture("res/fonts/arial.png");
+/*
+    g_redTex = Texture::loadTexture("res/textures/red.bmp");
+    g_greenTex = Texture::loadTexture("res/textures/green.bmp");;
+    g_wallTex = Texture::loadTexture("res/textures/walltile.bmp");;
     g_thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
     g_entityTexture = Texture::loadTexture("res/textures/dude.bmp");
-
+*/
     g_boundShaderID = 0;
     g_boundVAOID = 0;
     g_boundVBOID = 0;
@@ -133,15 +147,39 @@ bool initGlobals()
     }
     
     g_letterShader->setUniform1i("u_Texture", 0);
+    
+    
+
+    g_redTex = Texture::loadTexture("res/textures/red.bmp");    
+    g_greenTex = Texture::loadTexture("res/textures/green.bmp");;
     g_arialFont = Font::loadFont("res/fonts/arial");
+
+    
+    g_wallTex = Texture::loadTexture("res/textures/walltile.bmp");;
+    g_thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
+    g_entityTexture = Texture::loadTexture("res/textures/dude.bmp");
+
     g_letterShader->setUniform1f("u_Aspect", g_aspect);
+
 
     g_renderer->shader = g_basicShader;
     g_renderer->lineShader = g_lineShader;
     g_renderer->quadShader = g_quadShader;
     g_renderer->letterShader = g_letterShader;
     g_renderer->setFont(g_arialFont);
-    
+
+
+
+    g_voidTile = (Tile*)g_memory.reserve(sizeof(Tile));
+    g_thingyTile = (Tile*)g_memory.reserve(sizeof(Tile));
+    g_wallTile = (Tile*)g_memory.reserve(sizeof(Tile));
+
+    g_voidTile->barrier = true;
+    g_voidTile->texture = NULL;
+    g_thingyTile->barrier = false;
+    g_thingyTile->texture = g_thingyTexture;
+    g_wallTile->barrier = true;
+    g_wallTile->texture = g_wallTex;
 
     initBuffers();
     return true;
@@ -154,8 +192,12 @@ void deleteGlobals()
     DEL(g_renderer);
     g_entityTexture->del();
     g_thingyTexture->del();
-    g_entityTexture->~Texture();
-    g_thingyTexture->~Texture();
+    g_redTex->del();
+    g_greenTex->del();
+    g_wallTex->del();
+    g_memory.release(g_voidTile);
+    g_memory.release(g_thingyTile);
+    g_memory.release(g_wallTile);
     DEL(g_squareFillIBO);
     DEL(g_squareLineIBO);
     DEL(g_basicShader);
