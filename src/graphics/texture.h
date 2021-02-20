@@ -10,11 +10,9 @@ struct Texture
     unsigned int heightInPixels;
 
 public:
-    Texture();
+    Texture() = delete;
     ~Texture();
     void del();
     void bind(unsigned int slot = 0) const;
     static Texture* loadTexture(const std::string& filepath);
-private:
-    Texture(unsigned int id, const std::string& filepath);
 };

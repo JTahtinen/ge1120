@@ -3,19 +3,7 @@
 #include <SDL2/SDL_image.h>
 #include "../defs.h"
 #include "../globals.h"
-Texture::Texture(unsigned int id, const std::string& filepath)
-    : id(id) 
-    , filepath(filepath)
-    , valid(true)
-    , widthInPixels(0)
-    , heightInPixels(0)
-{
-}
 
-Texture::Texture()
-    : valid(false)
-{
-}
 
 Texture::~Texture()
 {
@@ -45,21 +33,27 @@ Texture* Texture::loadTexture(const std::string &filepath)
         GLCALL(glTexImage2D
                (GL_TEXTURE_2D, 0, GL_RGBA8, texImage->w, texImage->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, texImage->pixels));
 
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+//        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+//        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
         //result = new Texture(id, filepath);
+        
         result = (Texture*)g_memory.reserve(sizeof(Texture));
 
-        *result = Texture(id, filepath);
+        result->id = id;
+        result->filepath = filepath;
+        result->valid = true;
         result->widthInPixels = texImage->w;
         result->heightInPixels = texImage->h;
     }
     else
     {
-        std::cout << "[ERROR] could not load texture: " << filepath << std::endl;
-        return nullptr;
+        err("could not load texture: %s\n", filepath);
+        return NULL;
     }
     SDL_FreeSurface(texImage);
     return result;
