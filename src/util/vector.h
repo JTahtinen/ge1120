@@ -1,4 +1,5 @@
 #pragma once
+#include "../globals.h"
 
 template <typename T>
 class Vector
@@ -9,7 +10,7 @@ class Vector
 
 public:
     inline Vector(size_t capacity)
-        : _size(0), _capacity(0)
+        : _size(0)
     {
         reserve(capacity);
     }
@@ -20,29 +21,26 @@ public:
     {
         if (_capacity > 0)
         {
-            _data = new T[_capacity];
-            for (int i = 0; i < _size; ++i)
-            {
-                _data[i] = other[i];
-            }
+            _data = (T*)g_memory.reserve(sizeof(T) * _capacity);
+            memcpy(_data, other._data, _size);
         }
     }
     
     inline Vector()
-        : Vector(10)
+        : Vector(50)
     {
     }
 
     inline ~Vector()
     {
-        delete[] _data;
+        g_memory.release(_data);
     }
 
     inline void reserve(size_t amt)
     {
         if (_size == 0)
         {
-            _data = new T[amt];
+            _data = (T*)g_memory.reserve(sizeof(T) * amt);
             _capacity = amt;
         }
     }
@@ -52,12 +50,9 @@ public:
         if (_capacity > 0)
         {
             _capacity *= 2;
-            T* newData = new T[_capacity];
-            for (int i = 0; i < _size; ++i)
-            {
-                newData[i] = _data[i];
-            }
-            delete[] _data;
+            T* newData = (T*)g_memory.reserve(sizeof(T) * _capacity);
+            memmove(newData, _data, sizeof(T) * _size);
+            g_memory.release(_data);
             _data = newData;
         }
     }
@@ -76,7 +71,7 @@ public:
         --_size;
     }
 
-    inline void insert(T value, unsigned int index)
+    inline void insert(T value, size_t index)
     {
         if (index > _size)
         {
@@ -91,7 +86,7 @@ public:
         {
             double_capacity();
         }
-            for (int i = _size + 1; i > index; --i)
+            for (size_t i = _size + 1; i > index; --i)
             {
                 _data[i] = _data[i - 1];
             }
@@ -99,7 +94,7 @@ public:
         ++_size;
     }
 
-    inline void erase(unsigned int index, unsigned int amt)
+    inline void erase(size_t index, size_t amt)
     {
         if (index == _size - 1 && amt == 1)
         {
@@ -108,7 +103,7 @@ public:
         }
         if (index < _size)
         {
-            unsigned int finalAmt;
+            size_t finalAmt;
             if (index + amt - 1 < _size)
             {
                 finalAmt = amt;
@@ -117,7 +112,7 @@ public:
             {
                 finalAmt = _size - index;
             }
-            for (int i = index; i < _size - finalAmt; ++i)
+            for (size_t i = index; i < _size - finalAmt; ++i)
             {
                 _data[i] = _data[i + finalAmt];
             }
@@ -125,7 +120,7 @@ public:
         }
     }
 
-    inline void erase(unsigned int index)
+    inline void erase(size_t index)
     {
         erase(index, 1);
     }
@@ -140,12 +135,12 @@ public:
         return _capacity;
     }
 
-    const T& operator[](unsigned int index) const
+    inline const T& operator[](size_t index) const
     {
         return _data[index];
     }
 
-    T& operator[](unsigned int index)
+    inline T& operator[](size_t index)
     {
         return _data[index];
     }
