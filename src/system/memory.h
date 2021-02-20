@@ -6,8 +6,8 @@
 #define MAX_MEMORY_ALLOCATIONS 60000
 struct MemoryBlockInfo
 {
-    unsigned int start;
-    unsigned int end;
+    size_t start;
+    size_t end;
 };
 
 #define KB(val) (val * 1024)
@@ -18,12 +18,12 @@ class Memory
 {
 public:
 
-    uint8_t* allocation;
+    void* allocation;
     size_t allocationSize;
     size_t availableMemory;
 
-    unsigned int* reservedMemoryIndices;
-    unsigned int numReservedMemoryIndices;
+    size_t* reservedMemoryIndices;
+    size_t numReservedMemoryIndices;
 
     std::map<void*, MemoryBlockInfo> reservedMemoryInfo;
     
