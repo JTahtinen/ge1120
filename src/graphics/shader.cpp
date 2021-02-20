@@ -37,9 +37,9 @@ unsigned int Shader::compileShader(GLenum type, const std::string &fileSource)
     if (result == GL_FALSE)
     {
         if (type == GL_VERTEX_SHADER)
-            std::cout << "[ERROR] Could not compile vertex shader: " << fileSource << std::endl;
+            err("Could not compile vertex shader: %s\n", fileSource);
         else
-            std::cout << "[ERROR] Could not compile fragment shader" << fileSource <<std::endl;
+            err("Could not compile fragment shader: %s\n", fileSource);
     }
     return shader;
 }
@@ -75,7 +75,7 @@ bool Shader::bind() const
     }
     else
     {
-        std::cout << "[ERROR] Invalid shader!" << std::endl;
+        err("Invalid shader!");
         return false;
     }
 }
@@ -126,7 +126,7 @@ int Shader::getUniformLocation(const std::string &u_Name)
     GLCALL(int location = glGetUniformLocation(_id, u_Name.c_str()));
     if (location == -1)
     {
-        std::cout << "[ERROR] Could not find uniform " << u_Name << std::endl;
+        err("Could not find uniform %s\n", u_Name.c_str());
         return -1;
     }
     _uniformLocations[u_Name] = location;
