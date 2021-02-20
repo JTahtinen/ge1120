@@ -58,3 +58,10 @@ inline bool vec2isBetween(Vec2 vec, Vec2 min, Vec2 max)
     bool result = (valIsBetween(vec.x, min.x, max.x) && valIsBetween(vec.y, min.y, max.y));
     return result;
 }
+
+inline float getAngleOfVec2(Vec2 vec)
+{
+    float angleInRadians = atan2(vec.y, vec.x);
+    float angleInDegrees = (angleInRadians / MATH_PI) * 180.0f;
+    return angleInDegrees;
+}
