@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdarg.h>
 
+
 inline void message(char* content, ...)
 {
     va_list ap;
@@ -34,8 +35,8 @@ inline void message(char* content, ...)
                 for (sval = va_arg(ap, char*); *sval; ++sval)
                 {
                     putchar(*sval);
-                    break;
                 }
+                break;
             default:
                 putchar(*p);
                 break;
@@ -43,6 +44,48 @@ inline void message(char* content, ...)
     }
     va_end(ap);
 }
+
+inline void err(char* content, ...)
+{
+    va_list ap;
+
+    va_start(ap, content);
+    char* sval;
+    int ival;
+    double dval;
+    char* p;
+    printf("[ERROR] ");
+    for (p = content; *p; ++p)
+    {
+        if (*p != '%')
+        {
+            putchar(*p);
+            continue;
+        }
+        switch (*++p)
+        {
+            case 'd':
+                ival = va_arg(ap, int);
+                printf("%d", ival);
+                break;
+            case 'f':
+                dval = va_arg(ap, double);
+                printf("%f", dval);
+                break;
+            case 's':
+                for (sval = va_arg(ap, char*); *sval; ++sval)
+                {
+                    putchar(*sval);                 
+                }
+                break;
+            default:
+                putchar(*p);
+                break;
+        }
+    }
+    va_end(ap);
+}
+
 
 inline void GLClearError()
 {
