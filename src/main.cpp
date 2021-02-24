@@ -9,37 +9,39 @@
 #include <SDL2/SDL_image.h>
 #include "math/vec2.h"
 #include "game/game.h"
+#include "math/math.h"
 #include "graphics/vertexarray.h"
 #include "graphics/renderer.h"
 #include "system/memory.h"
 #include "util/vector.h"
 #include <chrono>
 #include <string>
+#include <thread>
 
-class Timer
+struct Timer
 {
-    std::chrono::steady_clock::time_point _startTime;
-    std::chrono::steady_clock::time_point _currentTime;
-    std::chrono::steady_clock::time_point _lastTime;
-public:
+    std::chrono::steady_clock::time_point startTime;
+    std::chrono::steady_clock::time_point currentTime;
+    std::chrono::steady_clock::time_point lastTime;
+
     inline void start()
 	{
-		_startTime = std::chrono::high_resolution_clock::now();
-		_currentTime = _startTime;
-		_lastTime = _startTime;
+		startTime = std::chrono::high_resolution_clock::now();
+		currentTime = startTime;
+		lastTime = startTime;
 	}
 	unsigned int getElapsedInMillis() const
 	{
-		return (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(_currentTime - _startTime).count();
+		return (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
 	}
 	inline unsigned int getElapsedSinceLastUpdateInMillis() const
 	{
-		return (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(_currentTime - _lastTime).count();
+		return (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
 	}
 	inline void update()
 	{
-		_lastTime = _currentTime;
-		_currentTime = std::chrono::high_resolution_clock::now();
+		lastTime = currentTime;
+		currentTime = std::chrono::high_resolution_clock::now();
 	}
 };
 
@@ -52,7 +54,11 @@ static int windowHeight;
 static SDL_Window *win;
 
 static Game *game;
+
+static Timer gameTimer;
 static Timer frameTimer;
+
+static int frameCap;
 
 static void updateInputs()
 {
@@ -88,8 +94,47 @@ static void updateWindow()
 
 static void updateGame()
 {
+
+    
+    static unsigned int frames = 0;
+    if (g_input.isKeyTyped(KEY_B))
+    {
+        g_mouseState = !g_mouseState;
+        if (!g_mouseState)
+        {
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+        }
+        else
+        {
+            SDL_SetRelativeMouseMode(SDL_FALSE);
+        }
+    }
+
+    static Vec2 buttonPos(-0.8f, -0.3f);
+    static Quad buttonQuad(0.0f, 0.0f, 0.0f, 0.04f, 0.1f, 0.04f, 0.1f, 0.0f);
+    static Vec4 buttonIdleColor(0.6f, 0.6f, 0.6f, 1.0f);
+    static Vec4 buttonHighlightColor(0.8f, 0.8f, 0.8f, 1.0f);
+    static Vec4* buttonColor = &buttonIdleColor;
+    if (g_mouseState)
+    {
+        float mX = (float)g_input.mouseX / (float)windowWidth * 2.0f - 1.0f;
+        float mY = -((float)(g_input.mouseY / (float)windowHeight * 2.0f - 1.0f));
+        
+        if (vec2IsBetween(Vec2(mX, mY), buttonPos, buttonPos + buttonQuad.point2))
+        {
+            buttonColor = &buttonHighlightColor;
+        }
+        else
+        {
+            buttonColor = &buttonIdleColor;
+        }
+
+    }
+
+    /*
     static void **pointers = new void *[60000];
     static unsigned int numPointers = 0;
+
     ASSERT(numPointers <= 60000);
 
     if (g_input.isKeyTyped(KEY_N))
@@ -122,13 +167,52 @@ static void updateGame()
             }
         }
     }
+*/
+
+    
+
+    unsigned int frameTimeInMillis = frameTimer.getElapsedSinceLastUpdateInMillis();    
     frameTimer.update();
-    unsigned int frameTimeInMillis = frameTimer.getElapsedSinceLastUpdateInMillis();
-    g_frameTime = (float)frameTimeInMillis * 0.001f;
+    
+
+    static unsigned int minFrameTime = 1000 / frameCap;
+    
+    if (frameTimeInMillis < minFrameTime)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(minFrameTime - frameTimeInMillis));
+        g_frameTime = (float)minFrameTime * 0.001f;
+    }
+    else
+    {
+        g_frameTime = (float)frameTimeInMillis * 0.001f;
+    }
     game->update();
-    g_renderer->submitText("frametime: " + std::to_string(frameTimeInMillis)+ "ms", Vec2(-0.95f, 0.5f));
+    ++frames;
+    
+    static unsigned int framesPerSec = 0;
+    static unsigned int timerAccumulator = 0;
+    static unsigned int seconds = 0;
+    timerAccumulator += frameTimeInMillis;
+    gameTimer.update();
+    if (timerAccumulator >= 1000)
+    {
+        seconds++;
+        while (timerAccumulator > 1000)
+        {
+            timerAccumulator -= 1000;
+        }
+        framesPerSec = frames;
+        frames = 0;
+    }
+    g_renderer->submitText("frametime: " + std::to_string((int)(g_frameTime * 1000.f))+ "ms", Vec2(-0.95f, 0.5f));
+    g_renderer->submitText("fps: " + std::to_string(framesPerSec), Vec2(-0.95, 0.47f));
+    g_renderer->submitText("Sec: " + std::to_string(seconds), Vec2(-0.95, 0.44f));
     
     game->render();
+
+
+    g_renderer->setView(Mat3::identity());
+    g_renderer->submitQuad(buttonQuad, buttonPos, *buttonColor);
 }
 
 static void updateSystem()
@@ -139,6 +223,7 @@ static void updateSystem()
 static void run()
 {
     running = true;
+    gameTimer.start();
     frameTimer.start();
     while (running)
     {
@@ -203,6 +288,8 @@ static bool start()
 
         IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
 
+        frameCap = 60;
+
         if (!initGlobals())
         {
             message("[ERROR] Globals init failed!\n");
@@ -221,69 +308,14 @@ static bool start()
     }
     return true;
 }
-int main()
+
+int main(int argc, char** argv)
 {
 #ifdef DEBUG
     message("GE1120 DEBUG build\n");
 #else
     message("GE1120 RELEASE build\n");
 #endif
-    /*
-    Vector<unsigned int> stuff(20);
-    for (int i = 0; i < 20; ++i)
-    {
-        stuff.push_back(i);
-    }
-    while (1)
-    {
-        message("Vector Size: %d\nCapacity: %d\nContent:\n", stuff.size(), stuff.capacity());
-        for (int i = 0; i < stuff.size(); ++i)
-        {
-            message("%d\n", stuff[i]);
-        }
-        char input;
-        message("Input: ");
-        std::cin >> input;
-        message("\n");
-
-        switch (input)
-        {
-        case '1':        
-        {
-            int index;
-            int val;
-            bool valid = false;
-            while (!valid)
-            {
-                message("choose index: ");
-                std::cin >> index;
-                if (index > stuff.size())
-                {
-                    message("Invalid index!\n");
-                    continue;
-                }
-                message("Choose value: ");
-                std::cin >> val;
-                stuff.insert(val, index);
-                valid = true;
-            }
-        }
-        break;
-        case '2':
-        {
-            stuff.erase(0);
-        }
-            break;
-        case '3':
-        {
-            stuff.erase(0, 3);
-        }
-            break;
-        case '0':
-            return 0;
-        }
-    }
-    */
     if (!start())
     {
         message("[ERROR] Game initialization failed\n");
