@@ -68,7 +68,10 @@ Actor *Game::spawnActor(Vec2 pos)
 void Game::update()
 {
     player->entity.vel *= 0;
-    player->entity.rotation -= g_input.mouseDeltaX * 30.0f * g_frameTime;
+    if (!g_mouseState)
+    {
+        player->entity.rotation -= g_input.mouseDeltaX * 30.0f * g_frameTime;
+    }
     Mat3 playerRotationMat = Mat3::rotation(TO_RADIANS(player->entity.rotation));
     Vec2 playerForward = playerRotationMat * Vec2(0, 1.0f);
     Vec2 playerRight(playerForward.y, -playerForward.x);
@@ -160,19 +163,37 @@ void Game::update()
 
     camera.entity.pos = player->entity.pos + playerForward * 0.3f * g_frameTime;
     camera.entity.rotation = player->entity.rotation;
+
 }
 
 static Mat3 view;
 void Game::render()
 {
 
-    view = Mat3::rotation(TO_RADIANS(-currentCamera->entity.rotation)) * Mat3::translation(Vec2() - currentCamera->entity.pos);
+    view = Mat3::view(Vec2() - currentCamera->entity.pos,
+                      TO_RADIANS(-currentCamera->entity.rotation),
+                      g_aspect);  
+//    view = Mat3::rotation(TO_RADIANS(-currentCamera->entity.rotation)) * Mat3::translation(Vec2() - currentCamera->entity.pos);
     g_renderer->setView(view);
     tileMap.draw(&camera, view);
     for (int i = 0; i < numActors; ++i)
     {
         drawActor(actors[i]);
     }
+    static float angle = 350;
+    Vec2 dir = createVec2FromAngle(angle);
+    if (g_input.isKeyPressed(KEY_O))
+    {
+        angle -= 80.0f * g_frameTime;
+    }
+    if (g_input.isKeyPressed(KEY_P))
+    {
+        angle += 80.0f * g_frameTime;
+    }
+    Vec2 intersection = tileMap.findTileIntersection(player->entity.pos, dir);
+    Quad quad = Quad(-0.01f, -0.01f, -0.01f, 0.01f, 0.01f, 0.01f, 0.01f, -0.01f);
+    g_renderer->submitQuad(quad, intersection, Vec4(1, 0, 1, 1));
+    g_renderer->submitLine(player->entity.pos, player->entity.pos + dir, Vec2(0,0));
 }
 
 void Game::drawActor(Actor *e) const

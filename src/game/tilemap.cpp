@@ -6,23 +6,31 @@
 #include "../globals.h"
 
 static Quad debugQuad;
-
 TileMap::~TileMap()
 {
     g_memory.release(tiles);
+    for (int i = 0; i < 4; ++i)
+    {
+        g_memory.release(tileRasterBuffer.elems[i].buffer);
+    }
 }
 
 bool TileMap::init(int width, int height)
 {
+    for (int i = 0; i < 4; ++i)
+    {
+        tileRasterBuffer.elems[i].buffer = (int*)g_memory.reserve(sizeof(int)
+                                                     * MAX_TILE_RASTER_BUFFER_YLEN);
+    }
     debugQuad = Quad(-0.01f, -0.01f, -0.01f, 0.01f, 0.01f, 0.01f, 0.01f, -0.01f);
     if (width < 0 || height < 0)
     {
-        message("[ERROR] Tilemap initialization - negative size, W: %d, H: %d!\n", width, height);
+        err("Tilemap initialization - negative size, W: %d, H: %d!\n", width, height);
         return false;
     }
     if (width >= 400 || height >= 400)
     {
-        message("[ERROR] Tilemap initialization - tilemap too big, W %d, H: %d!\n", width, height);
+        err("Tilemap initialization - tilemap too big, W %d, H: %d!\n", width, height);
         return false;
     }
     this->width = width;
@@ -48,7 +56,7 @@ void TileMap::setTile(int x, int y, Tile* tile)
 {
     if (!tile)
     {
-        message("[ERROR] Could not set tile %d, %d - Tile was NULL!\n", x, y);
+        err("Could not set tile %d, %d - Tile was NULL!\n", x, y);
     }
     if (x >= 0 && x < width && y >= 0 && y < height)
     {
@@ -96,12 +104,12 @@ Vec2 TileMap::checkTileCollision(Vec2 pos, Vec2 vel)
     return Vec2(newXVel, newYVel);
 }
         
-
-TileRasterBuffer TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start)
+void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start,
+                                         TileRasterBufferElement* target)
 {
     Vec2 worldSize = getWorldAbsSize();
 
-    Vec2 dir = endPoint - startPoint;
+    Vec2 dir = (endPoint - startPoint).normalize();
 
 
     int startTileX = (int)((startPoint.x) / TILE_SIZE);
@@ -109,28 +117,34 @@ TileRasterBuffer TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPo
     int endTileX = (int)((endPoint.x) / TILE_SIZE);
     int endTileY = (int)((endPoint.y) / TILE_SIZE);
 
-    int yLen = (abs)(endTileY - startTileY + 2);
-    
+    int yLen = (abs)(endTileY - startTileY) + 1;
+
+    if (yLen > 50)
+    {
+        yLen = 50;
+    }
     ASSERT(yLen > 0);
-    int *buffer;
-    buffer = (int*)g_memory.reserve(sizeof(int) * yLen);
-    Vec4 color;
+    
+    Vec4 debugQuadColor;
     if (start)
     {
-        color = Vec4(0, 1, 0, 1);
+        debugQuadColor = Vec4(0, 1, 0, 1);
     }
     else
     {
-        color = Vec4(1, 1, 0, 1);
+        debugQuadColor = Vec4(1, 1, 0, 1);
     }
+    Vec2 curScreenPos = startPoint;
     for (int y = 0; y < yLen; ++y)
     {
-        Vec2 curScreenPos = startPoint + Vec2(getXAtLinePoint(dir, + y * TILE_SIZE), y * TILE_SIZE);
-        int xIndex = (int)(curScreenPos.x / TILE_SIZE);
-        buffer[y] = xIndex;
-        g_renderer->submitQuad(debugQuad, curScreenPos, color);
+        int xIndex = (int)(curScreenPos.x / TILE_SIZE + dir.x * HALF_TILE_SIZE);
+        target->buffer[y] = xIndex;
+        g_renderer->submitQuad(debugQuad, curScreenPos, debugQuadColor);
+        
+        curScreenPos.y += TILE_SIZE * dir.y;
+        curScreenPos.x += findVerticalTileIntersection(curScreenPos, dir);
     }
-    return {buffer, yLen,};
+    target->yLength = yLen;
 }
 
 void TileMap::draw(Camera* camera, Mat3& view)
@@ -182,16 +196,19 @@ void TileMap::draw(Camera* camera, Mat3& view)
     int leftTileY = (int)leftTile.y;
     int rightTileY = (int)rightTile.y;
 
-    TileRasterBuffer xStartBuffer0 = writeVecToTileRasterBuffer(bottom, left, true);
-    TileRasterBuffer xEndBuffer0 = writeVecToTileRasterBuffer(bottom, right, false);
-    TileRasterBuffer xStartBuffer1 = writeVecToTileRasterBuffer(left, top, true);
-    TileRasterBuffer xEndBuffer1 = writeVecToTileRasterBuffer(right, top, false);
+    TileRasterBufferElement& xStartBuffer0 = tileRasterBuffer.xStartBuffer0;
+    TileRasterBufferElement& xEndBuffer0 = tileRasterBuffer.xEndBuffer0;
+    TileRasterBufferElement& xStartBuffer1 = tileRasterBuffer.xStartBuffer1;
+    TileRasterBufferElement& xEndBuffer1 = tileRasterBuffer.xEndBuffer1;
+    writeVecToTileRasterBuffer(bottom, left, true, &xStartBuffer0);
+    writeVecToTileRasterBuffer(bottom, right, false, &xEndBuffer0);
+    writeVecToTileRasterBuffer(left, top, true, &xStartBuffer1);
+    writeVecToTileRasterBuffer(right, top, false, &xEndBuffer1);
 
     int totalBufferSize = (xStartBuffer0.yLength + xStartBuffer1.yLength) * 2;
 
     ASSERT(totalBufferSize > 0);
     int* combinedBuffer = (int*)g_memory.reserve(sizeof(int) * totalBufferSize);
-    //int *combinedBuffer = new int[totalBufferSize];
 
     int xStartIndex = 0;
     for (int i = 0; i < xStartBuffer0.yLength; ++i)
@@ -214,18 +231,13 @@ void TileMap::draw(Camera* camera, Mat3& view)
     {
         combinedBuffer[(xEndIndex + i) * 2 + 1] = xEndBuffer1.buffer[i];
     }
-    
-    g_memory.release(xStartBuffer0.buffer);
-    g_memory.release(xEndBuffer0.buffer);
-    g_memory.release(xStartBuffer1.buffer);
-    g_memory.release(xEndBuffer1.buffer);
-
+   
     for (int y = 0; y < totalBufferSize / 2; ++y)
     {
         int yIndex = bottomTileY + y;
         if (yIndex < 0) continue;
         if (yIndex >= height) break;
-        for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 2; ++x)
+        for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 1; ++x)
         {
             if (x < 0)
                 continue;
@@ -234,13 +246,11 @@ void TileMap::draw(Camera* camera, Mat3& view)
             ASSERT(x > -1);
             
             Tile* tile = getTile(x, bottomTileY + y);
-//            ASSERT(tile->xIndex >= 0);
-//            ASSERT(tile->yIndex >= 0);
             ASSERT(tile->texture);
             
             g_renderer->renderVAO(g_entityVAO, tile->texture, 
             Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE,
-            TILE_SIZE * yIndex + HALF_TILE_SIZE)), view, RENDER_SOLID);
+                                   TILE_SIZE * yIndex + HALF_TILE_SIZE)), view, RENDER_SOLID);
         }
     }
 #ifdef DEBUG
@@ -255,4 +265,165 @@ void TileMap::draw(Camera* camera, Mat3& view)
 Vec2 TileMap::getWorldAbsSize() const
 {
     return Vec2(width * TILE_SIZE, height * TILE_SIZE);
+}
+
+Vec2 TileMap::findTileIntersection(Vec2 pos, Vec2 dir)
+{
+    int currentTileX = (int)(pos.x / TILE_SIZE);
+    int currentTileY = (int)(pos.y / TILE_SIZE);
+
+    float xEdge = 0;
+    float yEdge = 0;
+
+    float dirAngle = getAngleOfVec2(dir);
+
+    if (valIsBetween(dirAngle, 0, 90.0f) || valIsBetween(dirAngle, 270.0f, 360.0f))
+        xEdge = 1;
+    else
+        xEdge = 0;
+    if (valIsBetween(dirAngle, 0, 180.0f))
+        yEdge = 1;
+    else
+        yEdge = 0;
+    float horizontalIntersection = findHorizontalTileIntersection(pos, dir);
+    float verticalIntersection = findVerticalTileIntersection(pos, dir);
+
+    Vec2 result;
+    if (horizontalIntersection < 0 || horizontalIntersection > TILE_SIZE)
+    {        
+        result = Vec2((float)currentTileX * TILE_SIZE + (xEdge * TILE_SIZE),
+          (float)currentTileY * TILE_SIZE + verticalIntersection);
+    }
+    else
+    {
+       result = Vec2((float)currentTileX * TILE_SIZE + horizontalIntersection,
+                     (float)currentTileY * TILE_SIZE + (yEdge * TILE_SIZE));
+    }
+
+    return result;
+}
+
+/*Vec2 TileMap::findTileIntersection(Vec2 pos, Vec2 dir)
+{
+    int currentTileX = (int)(pos.x / TILE_SIZE);
+    int currentTileY = (int)(pos.y / TILE_SIZE);
+    Vec2 posInsideTile(fremainder(pos.x, TILE_SIZE), fremainder(pos.y, TILE_SIZE));
+
+    float dirAngle = getAngleOfVec2(dir);
+
+
+
+
+    
+    float horizontalIntersection = 0;
+    float verticalIntersection = 0;
+    float xEdge = 0;
+    float yEdge = 0;
+    if (valIsBetween(dirAngle, 0, 90.0f))
+    {
+
+        horizontalIntersection = posInsideTile.x + getXAtLinePoint(dir,
+                                                   TILE_SIZE - posInsideTile.y);
+        verticalIntersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                 TILE_SIZE - posInsideTile.x);
+        xEdge = 1;
+        yEdge = 1;
+    }
+    else if (valIsBetween(dirAngle, 90.0f, 180.0f))
+    {
+
+        horizontalIntersection = posInsideTile.x + getXAtLinePoint(dir,
+                                                   TILE_SIZE - posInsideTile.y);
+        verticalIntersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                 -posInsideTile.x);
+        xEdge = 0;
+        yEdge = 1;
+    }
+    else if (valIsBetween(dirAngle, 180.0f, 270.f))
+    {
+
+        horizontalIntersection = posInsideTile.x + getXAtLinePoint(dir,
+                                                   -posInsideTile.y);
+        verticalIntersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                 -posInsideTile.x);
+        xEdge = 0;
+        yEdge = 0;
+    }
+    else
+    {
+
+        horizontalIntersection = posInsideTile.x + getXAtLinePoint(dir,
+                                                   -posInsideTile.y);
+        verticalIntersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                 TILE_SIZE - posInsideTile.x);
+        xEdge = 1;
+        yEdge = 0;
+    }
+    
+    Vec2 result;
+    if (horizontalIntersection < 0 || horizontalIntersection > TILE_SIZE)
+    {        
+        result = Vec2((float)currentTileX * TILE_SIZE + (xEdge * TILE_SIZE),
+          (float)currentTileY * TILE_SIZE + verticalIntersection);
+    }
+    else
+    {
+       result = Vec2((float)currentTileX * TILE_SIZE + horizontalIntersection,
+                     (float)currentTileY * TILE_SIZE + (yEdge * TILE_SIZE));
+    }
+    return result;
+}
+*/
+float TileMap::findHorizontalTileIntersection(Vec2 pos, Vec2 dir)
+{
+    int currentTileX = (int)(pos.x / TILE_SIZE);
+
+    Vec2 posInsideTile(fremainder(pos.x, TILE_SIZE), fremainder(pos.y, TILE_SIZE));
+
+    float dirAngle = getAngleOfVec2(dir);
+
+    float intersection;
+    if (valIsBetween(dirAngle, 0, 180.0f))
+    {
+
+        intersection = posInsideTile.x + getXAtLinePoint(dir,
+                                                   TILE_SIZE - posInsideTile.y);
+    }
+    else
+    {
+
+        intersection = posInsideTile.x + getXAtLinePoint(dir, -posInsideTile.y);
+    }
+    
+   
+    //float result = (float)currentTileX * TILE_SIZE + intersection;
+    return intersection;
+
+}
+
+float TileMap::findVerticalTileIntersection(Vec2 pos, Vec2 dir)
+{
+    int currentTileY = (int)(pos.y / TILE_SIZE);
+    Vec2 posInsideTile(fremainder(pos.x, TILE_SIZE), fremainder(pos.y, TILE_SIZE));
+
+    float dirAngle = getAngleOfVec2(dir);
+
+    float intersection = 0;
+    
+
+    if (valIsBetween(dirAngle, 0, 90.0f) || valIsBetween(dirAngle, 270.0f, 360.0f))
+    {        
+        
+        intersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                         TILE_SIZE - posInsideTile.x);
+    }
+    else 
+    {
+        intersection = posInsideTile.y + getYAtLinePoint(dir, -posInsideTile.x);
+    }
+    
+    //float result = (float)currentTileY * TILE_SIZE + intersection;
+    
+    return intersection;
+
 }
