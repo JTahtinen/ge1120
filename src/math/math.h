@@ -8,6 +8,12 @@
 #define MATH_PI 3.14159265
 #define TO_RADIANS(angle) ((MATH_PI/180.f) * angle)
 
+struct iPoint
+{
+    int x;
+    int y;
+};
+
 struct Quad
 {
     Vec2 point0;
@@ -53,7 +59,7 @@ inline bool valIsBetween(float val, float min, float max)
     return result;
 }
 
-inline bool vec2isBetween(Vec2 vec, Vec2 min, Vec2 max)
+inline bool vec2IsBetween(Vec2 vec, Vec2 min, Vec2 max)
 {
     bool result = (valIsBetween(vec.x, min.x, max.x) && valIsBetween(vec.y, min.y, max.y));
     return result;
@@ -63,5 +69,22 @@ inline float getAngleOfVec2(Vec2 vec)
 {
     float angleInRadians = atan2(vec.y, vec.x);
     float angleInDegrees = (angleInRadians / MATH_PI) * 180.0f;
+    while(angleInDegrees < 0) angleInDegrees += 360.0f;
+    while(angleInDegrees > 360.0f) angleInDegrees -= 360.0f;
     return angleInDegrees;
+}
+
+inline Vec2 createVec2FromAngle(float degrees)
+{
+    float rad = TO_RADIANS(degrees);
+    Vec2 result = Vec2(cos(rad), sin(rad));
+    return result;
+}
+
+inline float fremainder(float value, float divider)
+{
+    if (divider == 0) return 0;
+    float valFloor = (float)((int)(value / divider));
+    float result = value - valFloor * divider;
+    return result;
 }
