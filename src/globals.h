@@ -13,6 +13,8 @@ struct Tile;
 
 extern Memory g_memory;
 
+extern bool g_mouseState;
+
 extern VertexArray* g_entityVAO;
 extern VertexArray* g_thingyVAO;
 extern Renderer* g_renderer;

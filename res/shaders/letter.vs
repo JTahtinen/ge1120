@@ -5,10 +5,11 @@ layout (location = 1) in vec2 texCoord;
 
 out vec2 v_TexCoord;
 
-uniform float u_Aspect;
+uniform mat3 u_View;
 
 void main()
 {
+	vec3 pos3 = u_View * vec3(position.xy, 1);
 	v_TexCoord = texCoord;
-	gl_Position = vec4(position.x, position.y * u_Aspect, 0, 1);
+	gl_Position = vec4(pos3.xy, 0, 1);
 }

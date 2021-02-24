@@ -8,6 +8,8 @@
 
 Memory g_memory;
 
+bool g_mouseState;
+
 VertexArray *g_entityVAO;
 VertexArray *g_thingyVAO;
 Renderer *g_renderer;
@@ -97,6 +99,9 @@ bool initGlobals()
 {
     g_frameTime = 0;
     g_memory.init(GB(1));
+
+    g_mouseState = false;
+    
     INIT(g_entityVAO, VertexArray, );
     INIT(g_thingyVAO, VertexArray, );
     INIT(g_renderer, Renderer, );
@@ -121,7 +126,7 @@ bool initGlobals()
     {
         return false;
     }
-    g_basicShader->setUniform1f("u_Aspect", g_aspect);
+
     g_basicShader->setUniform1i("u_Texture", 0);
     g_basicShader->setUniform4f("u_Color", 0.0f, 0.0f, 0.0f, 1.0f);
     g_lineShader = Shader::load("res/shaders/line.vs", "res/shaders/line.fs");
@@ -130,14 +135,14 @@ bool initGlobals()
         return false;
     }
     g_lineShader->setUniform4f("u_Color", 1.0f, 0, 0, 1.0f);
-    g_lineShader->setUniform1f("u_Aspect", g_aspect);
+
 
     g_quadShader = Shader::load("res/shaders/colorquad.vs", "res/shaders/colorquad.fs");
     if (!g_quadShader->bind())
     {
         return false;
     }
-    g_quadShader->setUniform1f("u_Aspect", g_aspect);
+
 
     
     g_letterShader = Shader::load("res/shaders/letter.vs", "res/shaders/letter.fs");
@@ -158,8 +163,6 @@ bool initGlobals()
     g_wallTex = Texture::loadTexture("res/textures/walltile.bmp");;
     g_thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
     g_entityTexture = Texture::loadTexture("res/textures/dude.bmp");
-
-    g_letterShader->setUniform1f("u_Aspect", g_aspect);
 
 
     g_renderer->shader = g_basicShader;

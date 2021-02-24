@@ -155,13 +155,13 @@ void Renderer::renderVAO(VertexArray *vao, const Texture *texture, const Mat3 &m
 {
     if (!shader)
     {
-        std::cout << "[ERROR] Could not render vao " << vao << ". Shader was NULL!" << std::endl;
+        err("Could not render vao %d - Shader was NULL!\n", vao->id);
         return;
     }
     shader->bind();
     if (!texture)
     {
-        std::cout << "[ERROR] Could not render vao " << vao << ". Texture was NULL!" << std::endl;
+        err("Could not render vao %d - Texture was NULL!\n", vao->id);
         return;
     }
     vao->bind();
@@ -406,10 +406,12 @@ void Renderer::flush()
     quadBatch.numVertices = 0;
     quadBatch.numIndices = 0;
 
+    
     letterBatch.vao->bind();
     letterBatch.ibo->bind();
     font->_atlas->bind();
-    letterShader->bind();
+    letterShader->bind();    
+    letterShader->setUniformMat3("u_View", Mat3::view(Vec2(), 0, g_aspect));
     GLCALL(glDrawElements(GL_TRIANGLES, letterBatch.numIndices, GL_UNSIGNED_INT, 0));
     letterBatch.numVertices = 0;
     letterBatch.numIndices = 0;
