@@ -260,7 +260,9 @@ void Memory::visualize()
     g_renderer->submitText("Num allocations: " + std::to_string(reservedMemoryInfo.size()), Vec2(-0.9f, 0.27f));
     g_renderer->submitText("Total Bytes: " + std::to_string(allocationSize), Vec2(-0.9f, 0.24f));
     g_renderer->submitText("Reserved Bytes: " + std::to_string(allocationSize - availableMemory), Vec2(-0.9f, 0.21f));
-    g_renderer->submitText("Available Bytes: " + std::to_string(availableMemory), Vec2(-0.9f, 0.18f));    
+    g_renderer->submitText("Available Bytes: " + std::to_string(availableMemory), Vec2(-0.9f, 0.18f));
+    static Mat3 view = Mat3::view(Vec2(), 0, g_aspect);
+    g_renderer->setView(view);
     static Vec2 barDim(0.4f, 0.03f);
     static Vec2 barPos(-0.9f, 0.3f);
     Quad barQuad(barPos, barPos + Vec2(0, barDim.y), barPos + barDim, barPos + Vec2(barDim.x, 0));
