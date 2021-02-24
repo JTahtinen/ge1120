@@ -81,7 +81,24 @@ Mat3 Mat3::translation(Vec2 vec)
                    0, 1.0f, vec.y,
                    0, 0, 1.0f);
     return result;
+}
 
+Mat3 Mat3::scale(Vec2 amount)
+{
+    Mat3 result(amount.x, 0, 0,
+                0, amount.y, 0,
+                0, 0, 1.0f);
+    return result;
+}
+
+Mat3 Mat3::view(Vec2 pos, float angle, float aspect)
+{
+    Mat3 trans = translation(pos);
+    Mat3 rot = rotation(angle);
+    Mat3 sc = scale(Vec2(1.0f, aspect));
+    Mat3 result = sc * rot * trans;
+    
+    return result;
 }
 
 Mat3 Mat3::operator*(const Mat3& other) const
@@ -92,4 +109,14 @@ Mat3 Mat3::operator*(const Mat3& other) const
 Vec2 Mat3::operator*(const Vec2 vec) const
 {
     return this->mul(vec);
+}
+
+float Mat3::operator[](unsigned int index) const
+{
+    return units[index];
+}
+
+float& Mat3::operator[](unsigned int index)
+{
+    return units[index];
 }

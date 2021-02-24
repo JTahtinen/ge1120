@@ -16,7 +16,12 @@ union Mat3
     static Mat3 identity();
     static Mat3 rotation(float angle);
     static Mat3 translation(Vec2 vec);
+    static Mat3 scale(Vec2 vec);
+    
+    static Mat3 view(Vec2 pos, float angle, float aspect);
 
     Mat3 operator*(const Mat3& other) const;
     Vec2 operator*(const Vec2 other) const;
+    float operator[](unsigned int index) const;
+    float& operator[](unsigned int index);
 };
