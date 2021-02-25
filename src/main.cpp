@@ -14,36 +14,10 @@
 #include "graphics/renderer.h"
 #include "system/memory.h"
 #include "util/vector.h"
-#include <chrono>
+#include "util/timer.h"
 #include <string>
 #include <thread>
 
-struct Timer
-{
-    std::chrono::steady_clock::time_point startTime;
-    std::chrono::steady_clock::time_point currentTime;
-    std::chrono::steady_clock::time_point lastTime;
-
-    inline void start()
-	{
-		startTime = std::chrono::high_resolution_clock::now();
-		currentTime = startTime;
-		lastTime = startTime;
-	}
-	unsigned int getElapsedInMillis() const
-	{
-		return (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
-	}
-	inline unsigned int getElapsedSinceLastUpdateInMillis() const
-	{
-		return (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastTime).count();
-	}
-	inline void update()
-	{
-		lastTime = currentTime;
-		currentTime = std::chrono::high_resolution_clock::now();
-	}
-};
 
 
 static bool running;
@@ -54,12 +28,11 @@ static int windowHeight;
 static SDL_Window *win;
 
 static Game *game;
-
-static Timer gameTimer;
 static Timer frameTimer;
 
-static int frameCap;
-
+static unsigned int frameCap = 60;
+static unsigned int frameTimeInMillis = 0;
+static unsigned int frames = 0;
 static void updateInputs()
 {
     g_input.update();
@@ -75,7 +48,6 @@ static void updateInputs()
 
 static void updateWindow()
 {
-
     for (int i = 0; i < g_events.numWindowEvents; ++i)
     {
         SDL_Event &ev = g_events.windowEvents[i];
@@ -92,11 +64,10 @@ static void updateWindow()
     SDL_GL_SwapWindow(win);
 }
 
-static void updateGame()
-{
 
+static void updateGame()
+{    
     
-    static unsigned int frames = 0;
     if (g_input.isKeyTyped(KEY_B))
     {
         g_mouseState = !g_mouseState;
@@ -168,48 +139,9 @@ static void updateGame()
         }
     }
 */
-
     
-
-    unsigned int frameTimeInMillis = frameTimer.getElapsedSinceLastUpdateInMillis();    
-    frameTimer.update();
-    
-
-    static unsigned int minFrameTime = 1000 / frameCap;
-    
-    if (frameTimeInMillis < minFrameTime)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(minFrameTime - frameTimeInMillis));
-        g_frameTime = (float)minFrameTime * 0.001f;
-    }
-    else
-    {
-        g_frameTime = (float)frameTimeInMillis * 0.001f;
-    }
-    game->update();
-    ++frames;
-    
-    static unsigned int framesPerSec = 0;
-    static unsigned int timerAccumulator = 0;
-    static unsigned int seconds = 0;
-    timerAccumulator += frameTimeInMillis;
-    gameTimer.update();
-    if (timerAccumulator >= 1000)
-    {
-        seconds++;
-        while (timerAccumulator > 1000)
-        {
-            timerAccumulator -= 1000;
-        }
-        framesPerSec = frames;
-        frames = 0;
-    }
-    g_renderer->submitText("frametime: " + std::to_string((int)(g_frameTime * 1000.f))+ "ms", Vec2(-0.95f, 0.5f));
-    g_renderer->submitText("fps: " + std::to_string(framesPerSec), Vec2(-0.95, 0.47f));
-    g_renderer->submitText("Sec: " + std::to_string(seconds), Vec2(-0.95, 0.44f));
-    
+    game->update();    
     game->render();
-
 
     g_renderer->setView(Mat3::identity());
     g_renderer->submitQuad(buttonQuad, buttonPos, *buttonColor);
@@ -223,16 +155,50 @@ static void updateSystem()
 static void run()
 {
     running = true;
-    gameTimer.start();
-    frameTimer.start();
+    unsigned int minFrameTime = 1000 / frameCap;    
+    g_frameTime = minFrameTime;
+    unsigned int timerAccumulator = 0;
+    unsigned int framesPerSec = 0;
+    unsigned int seconds = 0;
     while (running)
     {
+        frameTimer.update();
+        g_frameTime = (float)frameTimeInMillis * 0.001f;
+        timerAccumulator += frameTimeInMillis;
+        
         GLCALL(glClear(GL_DEPTH_BUFFER_BIT));
         GLCALL(glClear(GL_COLOR_BUFFER_BIT));
         updateSystem();
         updateInputs();
         updateGame();
         updateWindow();
+        
+        g_renderer->submitText(std::to_string(timerAccumulator), Vec2(0, 0.5f));
+        ++frames;
+        
+        if (timerAccumulator >= 1000)
+        {
+            ++seconds;
+            while (timerAccumulator > 1000)
+            {
+                timerAccumulator -= 1000;
+            }
+            framesPerSec = frames;
+            frames = 0;
+        }
+                    
+        g_renderer->submitText("frametime: " + std::to_string((int)(g_frameTime * 1000.f))+ "ms", Vec2(-0.95f, 0.5f));
+        g_renderer->submitText("fps: " + std::to_string(framesPerSec), Vec2(-0.95, 0.47f));
+        g_renderer->submitText("time(sec): " + std::to_string(seconds), Vec2(-0.95, 0.44f));
+
+        frameTimeInMillis = frameTimer.getMillisSinceLastUpdate();
+        if (frameTimeInMillis < minFrameTime)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(minFrameTime - frameTimeInMillis));
+        }
+
+        frameTimeInMillis = frameTimer.getMillisSinceLastUpdate();
+                
     }
 }
 
@@ -288,8 +254,6 @@ static bool start()
 
         IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
 
-        frameCap = 60;
-
         if (!initGlobals())
         {
             message("[ERROR] Globals init failed!\n");
@@ -297,6 +261,8 @@ static bool start()
         else
         {
             game = new Game();
+            frameTimer.start();
+
             run();
             delete game;
         }
