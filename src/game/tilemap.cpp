@@ -107,8 +107,6 @@ Vec2 TileMap::checkTileCollision(Vec2 pos, Vec2 vel)
 void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start,
                                          TileRasterBufferElement* target)
 {
-    Vec2 worldSize = getWorldAbsSize();
-
     Vec2 dir = (endPoint - startPoint).normalize();
 
 
@@ -117,32 +115,49 @@ void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool st
     int endTileX = (int)((endPoint.x) / TILE_SIZE);
     int endTileY = (int)((endPoint.y) / TILE_SIZE);
 
-    int yLen = (abs)(endTileY - startTileY) + 1;
+    int yLen = (abs)(endTileY - startTileY);
 
     if (yLen > 50)
     {
         yLen = 50;
     }
-    ASSERT(yLen > 0);
+    target->yLength = yLen;
+    if (yLen == 0) return;
+    yLen += 1;
+    //   ASSERT(yLen > 0);
     
     Vec4 debugQuadColor;
     if (start)
     {
-        debugQuadColor = Vec4(0, 1, 0, 1);
+        debugQuadColor = Vec4(0, 0, 1, 0.5f);
     }
     else
     {
-        debugQuadColor = Vec4(1, 1, 0, 1);
+        debugQuadColor = Vec4(1, 1, 0, 0.5f);
     }
     Vec2 curScreenPos = startPoint;
     for (int y = 0; y < yLen; ++y)
     {
-        int xIndex = (int)(curScreenPos.x / TILE_SIZE + dir.x * HALF_TILE_SIZE);
+        if (y == yLen - 1)
+        {
+            curScreenPos = endPoint;
+        }
+        else
+        {
+            curScreenPos = findVerticalTileIntersection(curScreenPos + dir * 0.00001f, dir);
+        }
+        int xIndex = (int)(curScreenPos.x / TILE_SIZE);
+        //int xIndex = (int)(curScreenPos.x / TILE_SIZE + dir.x * HALF_TILE_SIZE);
         target->buffer[y] = xIndex;
-        g_renderer->submitQuad(debugQuad, curScreenPos, debugQuadColor);
+        if (g_debugMode)
+        {
+            g_renderer->submitQuad(debugQuad, curScreenPos, debugQuadColor);
+        }
         
-        curScreenPos.y += TILE_SIZE * dir.y;
-        curScreenPos.x += findVerticalTileIntersection(curScreenPos, dir);
+
+        
+        //curScreenPos.y += TILE_SIZE * dir.y;
+  
     }
     target->yLength = yLen;
 }
@@ -205,7 +220,7 @@ void TileMap::draw(Camera* camera, Mat3& view)
     writeVecToTileRasterBuffer(left, top, true, &xStartBuffer1);
     writeVecToTileRasterBuffer(right, top, false, &xEndBuffer1);
 
-    int totalBufferSize = (xStartBuffer0.yLength + xStartBuffer1.yLength) * 2;
+    int totalBufferSize = (xStartBuffer0.yLength + xStartBuffer1.yLength + 1) * 2;
 
     ASSERT(totalBufferSize > 0);
     int* combinedBuffer = (int*)g_memory.reserve(sizeof(int) * totalBufferSize);
@@ -253,12 +268,13 @@ void TileMap::draw(Camera* camera, Mat3& view)
                                    TILE_SIZE * yIndex + HALF_TILE_SIZE)), view, RENDER_SOLID);
         }
     }
-#ifdef DEBUG
-    g_renderer->submitLine(top, right, {0, 0});
-    g_renderer->submitLine(right, bottom, {0, 0});
-    g_renderer->submitLine(bottom, left, {0, 0});
-    g_renderer->submitLine(left, top, {0, 0});
- #endif 
+    if (g_debugMode)
+    {
+        g_renderer->submitLine(top, right, {0, 0});
+        g_renderer->submitLine(right, bottom, {0, 0});
+        g_renderer->submitLine(bottom, left, {0, 0});
+        g_renderer->submitLine(left, top, {0, 0});
+    }
     g_memory.release(combinedBuffer);
 }
 
@@ -269,41 +285,20 @@ Vec2 TileMap::getWorldAbsSize() const
 
 Vec2 TileMap::findTileIntersection(Vec2 pos, Vec2 dir)
 {
-    int currentTileX = (int)(pos.x / TILE_SIZE);
     int currentTileY = (int)(pos.y / TILE_SIZE);
+    float currentTileLeftEdge = (float)currentTileY * TILE_SIZE;
+    float currentTileRightEdge = (float)(currentTileY + 1) * TILE_SIZE;
 
-    float xEdge = 0;
-    float yEdge = 0;
+    Vec2 horizontalIntersection = findHorizontalTileIntersection(pos, dir);
 
-    float dirAngle = getAngleOfVec2(dir);
-
-    if (valIsBetween(dirAngle, 0, 90.0f) || valIsBetween(dirAngle, 270.0f, 360.0f))
-        xEdge = 1;
-    else
-        xEdge = 0;
-    if (valIsBetween(dirAngle, 0, 180.0f))
-        yEdge = 1;
-    else
-        yEdge = 0;
-    float horizontalIntersection = findHorizontalTileIntersection(pos, dir);
-    float verticalIntersection = findVerticalTileIntersection(pos, dir);
-
-    Vec2 result;
-    if (horizontalIntersection < 0 || horizontalIntersection > TILE_SIZE)
-    {        
-        result = Vec2((float)currentTileX * TILE_SIZE + (xEdge * TILE_SIZE),
-          (float)currentTileY * TILE_SIZE + verticalIntersection);
-    }
-    else
+    if (horizontalIntersection.y < (float)(currentTileY * TILE_SIZE) || horizontalIntersection.y > (float)(currentTileY + 1) * TILE_SIZE)
     {
-       result = Vec2((float)currentTileX * TILE_SIZE + horizontalIntersection,
-                     (float)currentTileY * TILE_SIZE + (yEdge * TILE_SIZE));
+        return findVerticalTileIntersection(pos, dir);
     }
-
-    return result;
+    return horizontalIntersection;
 }
 
-/*Vec2 TileMap::findTileIntersection(Vec2 pos, Vec2 dir)
+Vec2 TileMap::findVerticalTileIntersection(Vec2 pos, Vec2 dir)
 {
     int currentTileX = (int)(pos.x / TILE_SIZE);
     int currentTileY = (int)(pos.y / TILE_SIZE);
@@ -315,115 +310,112 @@ Vec2 TileMap::findTileIntersection(Vec2 pos, Vec2 dir)
 
 
     
-    float horizontalIntersection = 0;
-    float verticalIntersection = 0;
-    float xEdge = 0;
+    float intersection = 0;
+
     float yEdge = 0;
     if (valIsBetween(dirAngle, 0, 90.0f))
     {
 
-        horizontalIntersection = posInsideTile.x + getXAtLinePoint(dir,
+        intersection = posInsideTile.x + getXAtLinePoint(dir,
                                                    TILE_SIZE - posInsideTile.y);
-        verticalIntersection = posInsideTile.y + getYAtLinePoint(dir,
-                                                 TILE_SIZE - posInsideTile.x);
-        xEdge = 1;
+
+
         yEdge = 1;
     }
     else if (valIsBetween(dirAngle, 90.0f, 180.0f))
     {
 
-        horizontalIntersection = posInsideTile.x + getXAtLinePoint(dir,
+        intersection = posInsideTile.x + getXAtLinePoint(dir,
                                                    TILE_SIZE - posInsideTile.y);
-        verticalIntersection = posInsideTile.y + getYAtLinePoint(dir,
-                                                 -posInsideTile.x);
-        xEdge = 0;
+
+
         yEdge = 1;
     }
     else if (valIsBetween(dirAngle, 180.0f, 270.f))
     {
 
-        horizontalIntersection = posInsideTile.x + getXAtLinePoint(dir,
+        intersection = posInsideTile.x + getXAtLinePoint(dir,
                                                    -posInsideTile.y);
-        verticalIntersection = posInsideTile.y + getYAtLinePoint(dir,
-                                                 -posInsideTile.x);
-        xEdge = 0;
+
+
         yEdge = 0;
     }
     else
     {
 
-        horizontalIntersection = posInsideTile.x + getXAtLinePoint(dir,
+        intersection = posInsideTile.x + getXAtLinePoint(dir,
                                                    -posInsideTile.y);
-        verticalIntersection = posInsideTile.y + getYAtLinePoint(dir,
-                                                 TILE_SIZE - posInsideTile.x);
-        xEdge = 1;
+
+
         yEdge = 0;
     }
     
     Vec2 result;
-    if (horizontalIntersection < 0 || horizontalIntersection > TILE_SIZE)
-    {        
-        result = Vec2((float)currentTileX * TILE_SIZE + (xEdge * TILE_SIZE),
-          (float)currentTileY * TILE_SIZE + verticalIntersection);
-    }
-    else
-    {
-       result = Vec2((float)currentTileX * TILE_SIZE + horizontalIntersection,
+
+       result = Vec2((float)currentTileX * TILE_SIZE + intersection,
                      (float)currentTileY * TILE_SIZE + (yEdge * TILE_SIZE));
-    }
-    return result;
+
+
+        return result;
 }
-*/
-float TileMap::findHorizontalTileIntersection(Vec2 pos, Vec2 dir)
+
+Vec2 TileMap::findHorizontalTileIntersection(Vec2 pos, Vec2 dir)
 {
     int currentTileX = (int)(pos.x / TILE_SIZE);
-
-    Vec2 posInsideTile(fremainder(pos.x, TILE_SIZE), fremainder(pos.y, TILE_SIZE));
-
-    float dirAngle = getAngleOfVec2(dir);
-
-    float intersection;
-    if (valIsBetween(dirAngle, 0, 180.0f))
-    {
-
-        intersection = posInsideTile.x + getXAtLinePoint(dir,
-                                                   TILE_SIZE - posInsideTile.y);
-    }
-    else
-    {
-
-        intersection = posInsideTile.x + getXAtLinePoint(dir, -posInsideTile.y);
-    }
-    
-   
-    //float result = (float)currentTileX * TILE_SIZE + intersection;
-    return intersection;
-
-}
-
-float TileMap::findVerticalTileIntersection(Vec2 pos, Vec2 dir)
-{
     int currentTileY = (int)(pos.y / TILE_SIZE);
     Vec2 posInsideTile(fremainder(pos.x, TILE_SIZE), fremainder(pos.y, TILE_SIZE));
 
     float dirAngle = getAngleOfVec2(dir);
+    float intersection;
 
-    float intersection = 0;
+
+
     
 
-    if (valIsBetween(dirAngle, 0, 90.0f) || valIsBetween(dirAngle, 270.0f, 360.0f))
-    {        
-        
-        intersection = posInsideTile.y + getYAtLinePoint(dir,
-                                                         TILE_SIZE - posInsideTile.x);
-    }
-    else 
+    float xEdge = 0;
+
+    if (valIsBetween(dirAngle, 0, 90.0f))
     {
-        intersection = posInsideTile.y + getYAtLinePoint(dir, -posInsideTile.x);
+
+
+        intersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                 TILE_SIZE - posInsideTile.x);
+        xEdge = 1;
+
+    }
+    else if (valIsBetween(dirAngle, 90.0f, 180.0f))
+    {
+
+
+        intersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                 -posInsideTile.x);
+        xEdge = 0;
+
+    }
+    else if (valIsBetween(dirAngle, 180.0f, 270.f))
+    {
+
+
+        intersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                 -posInsideTile.x);
+        xEdge = 0;
+
+    }
+    else
+    {
+        intersection = posInsideTile.y + getYAtLinePoint(dir,
+                                                 TILE_SIZE - posInsideTile.x);
+        xEdge = 1;
+
     }
     
-    //float result = (float)currentTileY * TILE_SIZE + intersection;
-    
-    return intersection;
+    Vec2 result;
+    //if (horizontalIntersection < 0 || horizontalIntersection > TILE_SIZE)
+    //{        
+        result = Vec2((float)currentTileX * TILE_SIZE + (xEdge * TILE_SIZE),
+          (float)currentTileY * TILE_SIZE + intersection);
+        //}
+    return result;
 
 }
+

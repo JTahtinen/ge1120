@@ -52,8 +52,8 @@ struct TileMap
     Vec2 getWorldAbsSize() const;
     void draw(Camera* camera, Mat3& view);
     Vec2 findTileIntersection(Vec2 pos, Vec2 dir);
-    float findHorizontalTileIntersection(Vec2 pos, Vec2 dir);
-    float findVerticalTileIntersection(Vec2 pos, Vec2 dir);
+    Vec2 findHorizontalTileIntersection(Vec2 pos, Vec2 dir);
+    Vec2 findVerticalTileIntersection(Vec2 pos, Vec2 dir);
 private:
     void writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start,
                                     TileRasterBufferElement* target);
