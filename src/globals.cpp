@@ -9,6 +9,7 @@
 Memory g_memory;
 
 bool g_mouseState;
+bool g_debugMode = false;
 
 VertexArray *g_entityVAO;
 VertexArray *g_thingyVAO;
@@ -98,20 +99,14 @@ static void initBuffers()
 bool initGlobals()
 {
     g_frameTime = 0;
-    g_memory.init(GB(1));
+    g_memory.init(MB(1));
 
     g_mouseState = false;
     
     INIT(g_entityVAO, VertexArray, );
     INIT(g_thingyVAO, VertexArray, );
     INIT(g_renderer, Renderer, );
-/*
-    g_redTex = Texture::loadTexture("res/textures/red.bmp");
-    g_greenTex = Texture::loadTexture("res/textures/green.bmp");;
-    g_wallTex = Texture::loadTexture("res/textures/walltile.bmp");;
-    g_thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
-    g_entityTexture = Texture::loadTexture("res/textures/dude.bmp");
-*/
+
     g_boundShaderID = 0;
     g_boundVAOID = 0;
     g_boundVBOID = 0;
