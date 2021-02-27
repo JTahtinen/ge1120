@@ -117,6 +117,24 @@ static Key convertSDLKey(SDL_Keycode key)
 		return KEY_LSHIFT;
 	case SDLK_RSHIFT:
 		return KEY_RSHIFT;
+    case SDLK_F1:
+        return KEY_F1;
+    case SDLK_F2:
+        return KEY_F2;
+    case SDLK_F3:
+        return KEY_F3;
+    case SDLK_F4:
+        return KEY_F4;
+    case SDLK_F5:
+        return KEY_F5;
+    case SDLK_F6:
+        return KEY_F6;
+    case SDLK_F7:
+        return KEY_F7;
+    case SDLK_F8:
+        return KEY_F8;
+    case SDLK_F9:
+        return KEY_F9;
 	default:
 		return KEY_NULL;
 	}

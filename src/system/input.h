@@ -53,6 +53,15 @@ enum Key
 	KEY_9,
 	KEY_LSHIFT,
 	KEY_RSHIFT,
+    KEY_F1,
+    KEY_F2,
+    KEY_F3,
+    KEY_F4,
+    KEY_F5,
+    KEY_F6,
+    KEY_F7,
+    KEY_F8,
+    KEY_F9,
 	KEY_AMOUNT,
 	KEY_NULL
 };
