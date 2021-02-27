@@ -3,15 +3,21 @@
 
 Input::Input()
 {
-    this->mouseX = 0;
-    this->mouseY = 0;
-    this->mouseDeltaX = 0;
-    this->mouseDeltaY = 0;
+    mouseX = 0;
+    mouseY = 0;
+    mouseDeltaX = 0;
+    mouseDeltaY = 0;
+    mouseLeftClicked = false;
+    mouseRightClicked = false;
+    mouseLeftHeld = false;
+    mouseRightHeld = false;
+    mouseLeftReleased = false;
+    mouseRightReleased = false;
     for (int i = 0; i < KEY_AMOUNT; ++i)
     {
-        this->keysPressed[i] = false;
-        this->keysTyped[i] = false;
-        this->keysReleased[i] = false;
+        keysPressed[i] = false;
+        keysTyped[i] = false;
+        keysReleased[i] = false;
     }
 }
 
@@ -142,12 +148,16 @@ static Key convertSDLKey(SDL_Keycode key)
 
 void Input::update()
 {
-    this->mouseDeltaX = 0;
-    this->mouseDeltaY = 0;
+    mouseDeltaX = 0;
+    mouseDeltaY = 0;
+    mouseLeftClicked = false;
+    mouseLeftReleased = false;
+    mouseRightClicked = false;
+    mouseRightReleased = false;
     for (int i = 0; i < KEY_AMOUNT; ++i)
     {
-        this->keysTyped[i] = false;
-        this->keysReleased[i] = false;
+        keysTyped[i] = false;
+        keysReleased[i] = false;
     }
 
     for (int i = 0; i < g_events.numInputEvents; ++i)
@@ -160,24 +170,55 @@ void Input::update()
             {
                 Key key = convertSDLKey(ev.key.keysym.sym);
     
-                this->keysPressed[key] = true;
-                this->keysTyped[key] = true;
+                keysPressed[key] = true;
+                keysTyped[key] = true;
 
                 break;
             }
             case SDL_KEYUP:
             {
                 Key key = convertSDLKey(ev.key.keysym.sym);
-                this->keysPressed[key] = false;
-                this->keysReleased[key] = true;
+                keysPressed[key] = false;
+                keysReleased[key] = true;
                 break;
             }
             case SDL_MOUSEMOTION:
             {
-                SDL_GetMouseState(&this->mouseX, &this->mouseY);
-                this->mouseDeltaX = ev.motion.xrel;
-                this->mouseDeltaY = ev.motion.yrel;
+                SDL_GetMouseState(&mouseX, &mouseY);
+                mouseDeltaX = ev.motion.xrel;
+                mouseDeltaY = ev.motion.yrel;
                 break;
+            }
+            case SDL_MOUSEBUTTONDOWN:
+            {
+                if (ev.button.button == SDL_BUTTON_LEFT)
+                {
+                    mouseLeftClicked = true;
+                    mouseLeftHeld = true;
+                    break;
+                }
+                else if (ev.button.button = SDL_BUTTON_LEFT)
+                {
+                    mouseRightClicked = true;
+                    mouseRightHeld = true;
+                    break;
+                }
+            }
+            case SDL_MOUSEBUTTONUP:
+            {
+                if (ev.button.button == SDL_BUTTON_LEFT)
+                {
+                    mouseLeftHeld = false;
+                    mouseLeftReleased = true;
+                    break;
+                }
+                else if (ev.button.button = SDL_BUTTON_LEFT)
+                {
+                    mouseRightHeld = false;
+                    mouseRightReleased = true;
+                    break;
+                }
+
             }
         }
     }
@@ -185,15 +226,15 @@ void Input::update()
 
 bool Input::isKeyPressed(unsigned int key) const
 {
-    return this->keysPressed[key];
+    return keysPressed[key];
 }
 
 bool Input::isKeyTyped(unsigned int key) const
 {
-    return this->keysTyped[key];
+    return keysTyped[key];
 }
 
 bool Input::isKeyReleased(unsigned int key) const
 {
-    return this->keysReleased[key];
+    return keysReleased[key];
 }

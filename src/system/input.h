@@ -77,6 +77,13 @@ struct Input
     int mouseDeltaX;
     int mouseDeltaY;
 
+    bool mouseLeftClicked;
+    bool mouseRightClicked;
+    bool mouseLeftHeld;
+    bool mouseRightHeld;
+    bool mouseLeftReleased;
+    bool mouseRightReleased;
+
     Input();
     void update();
     bool isKeyPressed(unsigned int key) const;
