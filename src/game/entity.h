@@ -1,19 +1,20 @@
 #pragma once
 #include "../math/vec2.h"
-#include "../graphics/vertexarray.h"
-class Texture;
-
+#include "../graphics/sprite.h"
+#include <string>
 struct Entity
 {
+    unsigned int id;
+    std::string name;
     Vec2 pos;
     Vec2 vel;
     float rotation;
+
 };
 
 struct Actor
 {
     Entity entity;
-    VertexArray* vao;
-    const Texture* texture;
+    Sprite* sprite;
     float speed;
 };
