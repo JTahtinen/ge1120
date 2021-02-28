@@ -246,6 +246,8 @@ void TileMap::draw(Camera* camera, Mat3& view)
     {
         combinedBuffer[(xEndIndex + i) * 2 + 1] = xEndBuffer1.buffer[i];
     }
+
+    static Sprite tileSprite {NULL, Quad(-0.1f, -0.1f, -0.1f, 0.1f, 0.1f, 0.1f, 0.1f, -0.1f)};
    
     for (int y = 0; y < totalBufferSize / 2; ++y)
     {
@@ -261,11 +263,14 @@ void TileMap::draw(Camera* camera, Mat3& view)
             ASSERT(x > -1);
             
             Tile* tile = getTile(x, bottomTileY + y);
+            tileSprite.texture = tile->texture;
             ASSERT(tile->texture);
-            
+/*            
             g_renderer->renderVAO(g_entityVAO, tile->texture, 
             Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE,
-                                   TILE_SIZE * yIndex + HALF_TILE_SIZE)), view, RENDER_SOLID);
+            TILE_SIZE * yIndex + HALF_TILE_SIZE)), view, RENDER_SOLID);*/
+            g_renderer->submitSprite(&tileSprite, Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE,
+                                                                        TILE_SIZE * yIndex + HALF_TILE_SIZE)));
         }
     }
     if (g_debugMode)
