@@ -18,8 +18,6 @@
 #include <string>
 #include <thread>
 
-
-
 static bool running;
 
 static int windowWidth;
@@ -31,8 +29,59 @@ static Game *game;
 static Timer frameTimer;
 
 static unsigned int frameCap = 60;
-static unsigned int frameTimeInMillis = 0;
-static unsigned int frames = 0;
+
+static bool displayWorldInfo = false;
+struct Button
+{
+    void (*callback)();
+    Quad dimensions;
+    Vec2 pos;
+};
+
+void updateButton(const Button* button)
+{
+    static Vec4 buttonIdleColor(0.6f, 0.6f, 0.6f, 1.0f);
+    static Vec4 buttonHighlightColor(0.8f, 0.8f, 0.8f, 1.0f);
+    static Vec4 buttonClickColor(1, 1, 1, 1);
+    static Vec4* buttonColor = &buttonIdleColor;
+    if (g_mouseState)
+    {
+        Vec2 mousePos((float)g_input.mouseX / (float)windowWidth * 2.0f - 1.0f,
+                      -((float)(g_input.mouseY / (float)windowHeight * 2.0f - 1.0f)));
+        
+
+        if (vec2IsBetween(mousePos, button->pos, button->pos + button->dimensions.point2))
+        {
+            if (g_input.mouseLeftClicked)
+            {
+                button->callback();
+                buttonColor = &buttonClickColor;
+            }
+            else
+            {
+                buttonColor = &buttonHighlightColor;
+            }
+        }
+        else
+        {
+            buttonColor = &buttonIdleColor;
+        }
+
+    }
+    g_renderer->setView(Mat3::identity());
+    g_renderer->submitQuad(button->dimensions, button->pos, *buttonColor);    
+}
+
+void toggleDisplayWorldInfo()
+{
+    displayWorldInfo = !displayWorldInfo;
+}
+
+void toggleDebugMode()
+{
+    g_debugMode = !g_debugMode;
+}
+
 static void updateInputs()
 {
     g_input.update();
@@ -48,6 +97,9 @@ static void updateInputs()
 
 static void updateWindow()
 {
+    GLCALL(glClear(GL_DEPTH_BUFFER_BIT));
+    GLCALL(glClear(GL_COLOR_BUFFER_BIT));
+
     for (int i = 0; i < g_events.numWindowEvents; ++i)
     {
         SDL_Event &ev = g_events.windowEvents[i];
@@ -59,16 +111,52 @@ static void updateWindow()
         }
     }
     g_renderer->setView(Mat3::identity());
-    g_memory.visualize();
+    if (g_debugMode)
+    {
+        g_memory.visualize();
+    }
+    g_renderer->submitText("F1 - Toggle debug mode", Vec2(0.4f, -0.5f));
     g_renderer->flush();
     SDL_GL_SwapWindow(win);
 }
 
 
 static void updateGame()
-{    
+{
+    if (displayWorldInfo)
+    {
+        if (g_mouseState)
+        {
+            Vec2 mousePos((float)g_input.mouseX / (float)windowWidth * 2.0f - 1.0f,
+                          -((float)(g_input.mouseY / (float)windowHeight * 2.0f - 1.0f)));
+            
+
+            //static Mat3 screenProj = Mat3::view(Vec2(), 0, g_aspect);
+            g_renderer->setView(Mat3::identity());
+            Mat3 cameraToScreen = screenToWorldProjection(game);
+            Vec2 projectedMousePos = cameraToScreen * mousePos;
+            Vec2 fixedMousePos = Vec2(mousePos.x, mousePos.y * (1.0f / g_aspect));
+        
+            g_renderer->submitText(std::to_string(projectedMousePos.x) + " " + std::to_string(projectedMousePos.y),
+                                   fixedMousePos + Vec2(0.01f, 0.02f));
+            DataStrings dataStrings = getDataFromPos(game, projectedMousePos);
+            
+            //Tile* tile = game->tileMap.getTileAtPos(projectedMousePos);
+
+            float offset = -0.07f;
+            unsigned int numStrings = dataStrings.strings.size();
+            Quad textBoxDim {0, 0, 0.2f, 0, 0.2f, (float)numStrings * -0.06f, 0, (float)numStrings * -0.06f}; 
+            g_renderer->submitQuad(textBoxDim, mousePos + Vec2(0.01f, offset), Vec4(0, 0, 0, 0.3f));
+            for (unsigned int i = 0; i < numStrings; ++i)
+            {
+                g_renderer->submitText(dataStrings.strings[i],
+                                   Vec2(mousePos.x, mousePos.y * (1.0f / g_aspect)) + Vec2(0.01f, offset));
+                offset -= 0.03f;
+            }
+        }
+    } 
     
-    if (g_input.isKeyTyped(KEY_B))
+    if (g_input.isKeyTyped(KEY_B) || g_input.mouseRightClicked)
     {
         g_mouseState = !g_mouseState;
         if (!g_mouseState)
@@ -80,27 +168,11 @@ static void updateGame()
             SDL_SetRelativeMouseMode(SDL_FALSE);
         }
     }
-
-    static Vec2 buttonPos(-0.8f, -0.3f);
-    static Quad buttonQuad(0.0f, 0.0f, 0.0f, 0.04f, 0.1f, 0.04f, 0.1f, 0.0f);
-    static Vec4 buttonIdleColor(0.6f, 0.6f, 0.6f, 1.0f);
-    static Vec4 buttonHighlightColor(0.8f, 0.8f, 0.8f, 1.0f);
-    static Vec4* buttonColor = &buttonIdleColor;
-    if (g_mouseState)
+    if (g_input.isKeyTyped(KEY_F1))
     {
-        float mX = (float)g_input.mouseX / (float)windowWidth * 2.0f - 1.0f;
-        float mY = -((float)(g_input.mouseY / (float)windowHeight * 2.0f - 1.0f));
-        
-        if (vec2IsBetween(Vec2(mX, mY), buttonPos, buttonPos + buttonQuad.point2))
-        {
-            buttonColor = &buttonHighlightColor;
-        }
-        else
-        {
-            buttonColor = &buttonIdleColor;
-        }
-
+        g_debugMode = !g_debugMode;
     }
+
 
     /*
     static void **pointers = new void *[60000];
@@ -139,12 +211,13 @@ static void updateGame()
         }
     }
 */
-    
-    game->update();    
+    static Button button = {toggleDisplayWorldInfo, Quad(0, 0, 0, 0.03f, 0.06f, 0.03f, 0.06f, 0), Vec2(-0.9f, -0.3f)};
+    static Button button2 = {toggleDebugMode, Quad(0, 0, 0, 0.03f, 0.06f, 0.03f, 0.06f, 0), Vec2(-0.9f, -0.4f)};
+    game->update();
+    updateButton(&button);
+    updateButton(&button2);
     game->render();
 
-    g_renderer->setView(Mat3::identity());
-    g_renderer->submitQuad(buttonQuad, buttonPos, *buttonColor);
 }
 
 static void updateSystem()
@@ -160,20 +233,22 @@ static void run()
     unsigned int timerAccumulator = 0;
     unsigned int framesPerSec = 0;
     unsigned int seconds = 0;
+    unsigned int frames = 0;
+    unsigned int frameTimeInMillis = 0;
     while (running)
     {
         frameTimer.update();
         g_frameTime = (float)frameTimeInMillis * 0.001f;
         timerAccumulator += frameTimeInMillis;
         
-        GLCALL(glClear(GL_DEPTH_BUFFER_BIT));
-        GLCALL(glClear(GL_COLOR_BUFFER_BIT));
         updateSystem();
         updateInputs();
         updateGame();
         updateWindow();
-        
-        g_renderer->submitText(std::to_string(timerAccumulator), Vec2(0, 0.5f));
+        if (g_debugMode)
+        {
+            g_renderer->submitText(std::to_string(timerAccumulator), Vec2(0, 0.5f));
+        }
         ++frames;
         
         if (timerAccumulator >= 1000)
@@ -186,11 +261,12 @@ static void run()
             framesPerSec = frames;
             frames = 0;
         }
-                    
-        g_renderer->submitText("frametime: " + std::to_string((int)(g_frameTime * 1000.f))+ "ms", Vec2(-0.95f, 0.5f));
-        g_renderer->submitText("fps: " + std::to_string(framesPerSec), Vec2(-0.95, 0.47f));
-        g_renderer->submitText("time(sec): " + std::to_string(seconds), Vec2(-0.95, 0.44f));
-
+        if (g_debugMode)
+        {
+            g_renderer->submitText("frametime: " + std::to_string((int)(g_frameTime * 1000.f))+ "ms", Vec2(-0.95f, 0.5f));
+            g_renderer->submitText("fps: " + std::to_string(framesPerSec), Vec2(-0.95, 0.47f));
+            g_renderer->submitText("time(sec): " + std::to_string(seconds), Vec2(-0.95, 0.44f));
+        }
         frameTimeInMillis = frameTimer.getMillisSinceLastUpdate();
         if (frameTimeInMillis < minFrameTime)
         {
