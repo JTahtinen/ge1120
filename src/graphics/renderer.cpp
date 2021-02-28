@@ -6,53 +6,18 @@
 #include <iostream>
 #include "../globals.h"
 #include "font.h"
-
-struct QuadData
-{
-    Vec2 pos;
-    Vec4 color;
-    Vec3 model[3];
-    Vec3 view[3];
-};
-
-struct LineData
-{
-    Vec2 pos;
-    Vec3 model[3];
-    Vec3 view[3];
-};
-
-struct LetterData
-{
-    Vec2 pos;
-    Vec2 texCoord;
-};
-
-#define MAX_RENDERABLES (60000)
-
-#define LINE_VERTEX_SIZE (sizeof(LineData)
-#define LINE_SIZE (LINE_VERTEX_SIZE * 2)
-#define LINE_BUFFER_SIZE (LINE_SIZE * MAX_RENDERABLES)
-#define LINE_INDICES_SIZE (MAX_RENDERABLES * 2)
-
-#define QUAD_VERTEX_SIZE (sizeof(QuadData))
-#define QUAD_SIZE (QUAD_VERTEX_SIZE * 4)
-#define QUAD_BUFFER_SIZE (QUAD_SIZE * MAX_RENDERABLES)
-#define QUAD_INDICES_SIZE (MAX_RENDERABLES * 6)
-
-#define LETTER_VERTEX_SIZE (sizeof(LetterData))
-#define LETTER_SIZE (LETTER_VERTEX_SIZE * 4)
-#define LETTER_BUFFER_SIZE (LETTER_SIZE * MAX_RENDERABLES)
-#define LETTER_INDICES_SIZE (MAX_RENDERABLES * 6)
+#include "renderdefs.h"
 
 Renderer::Renderer()
 {
     viewMatrix = Mat3::identity();
 
+    
     // LINE BATCH INIT
-    lineBatch.vao = new VertexArray();
-    lineBatch.vao->bind();
-    lineBatch.ibo = new IndexBuffer();
+    initBatch(&lineBatch.batch);
+    
+    lineBatch.batch.vao->bind();
+    
     unsigned int *lineIndices = new unsigned int[LINE_INDICES_SIZE];
     unsigned int offset = 0;
     for (int i = 0; i < LINE_INDICES_SIZE; i += 2)
@@ -61,8 +26,8 @@ Renderer::Renderer()
         lineIndices[i + 1] = 1 + offset;
         offset += 2;
     }
-    lineBatch.ibo->bind();
-    lineBatch.ibo->setData(lineIndices, LINE_INDICES_SIZE);
+    lineBatch.batch.ibo->bind();
+    lineBatch.batch.ibo->setData(lineIndices, LINE_INDICES_SIZE);
     delete[] lineIndices;
     Buffer *lineVBO = new Buffer();
     lineVBO->setData(NULL, sizeof(float) * MAX_RENDERABLES, GL_DYNAMIC_DRAW);
@@ -76,12 +41,13 @@ Renderer::Renderer()
         }
     }
     lineVBO->setLayout(&lineLayout);
-    lineBatch.vao->addBuffer(lineVBO);
+    lineBatch.batch.vao->addBuffer(lineVBO);
 
     // QUAD BATCH INIT
-    quadBatch.vao = new VertexArray();
-    quadBatch.vao->bind();
-    quadBatch.ibo = new IndexBuffer();
+    initBatch(&quadBatch.batch);
+    
+    quadBatch.batch.vao->bind();
+    
     unsigned int *quadIndices = new unsigned int[QUAD_INDICES_SIZE];
     offset = 0;
     for (int i = 0; i < QUAD_INDICES_SIZE; i += 6)
@@ -94,8 +60,8 @@ Renderer::Renderer()
         quadIndices[i + 5] = 0 + offset;
         offset += 4;
     }
-    quadBatch.ibo->bind();
-    quadBatch.ibo->setData(quadIndices, QUAD_INDICES_SIZE);
+    quadBatch.batch.ibo->bind();
+    quadBatch.batch.ibo->setData(quadIndices, QUAD_INDICES_SIZE);
     delete[] quadIndices;
     Buffer *quadVBO = new Buffer();
     quadVBO->setData(NULL, QUAD_BUFFER_SIZE, GL_DYNAMIC_DRAW);
@@ -110,13 +76,12 @@ Renderer::Renderer()
         }
     }
     quadVBO->setLayout(&quadLayout);
-    quadBatch.vao->addBuffer(quadVBO);
+    quadBatch.batch.vao->addBuffer(quadVBO);
 
     //LETTER BATCH INIT
-   
-    letterBatch.vao = new VertexArray();
-    letterBatch.vao->bind();
-    letterBatch.ibo = new IndexBuffer();
+
+    initBatch(&letterBatch.batch);
+    letterBatch.batch.vao->bind();
     unsigned int *letterIndices = new unsigned int[LETTER_INDICES_SIZE];
     offset = 0;
     for (int i = 0; i < LETTER_INDICES_SIZE; i += 6)
@@ -129,8 +94,8 @@ Renderer::Renderer()
         letterIndices[i + 5] = 0 + offset;
         offset += 4;
     }
-    letterBatch.ibo->bind();
-    letterBatch.ibo->setData(letterIndices, LETTER_INDICES_SIZE);
+    letterBatch.batch.ibo->bind();
+    letterBatch.batch.ibo->setData(letterIndices, LETTER_INDICES_SIZE);
     delete[] letterIndices;
     Buffer *letterVBO = new Buffer();
     letterVBO->setData(NULL, LETTER_BUFFER_SIZE, GL_DYNAMIC_DRAW);
@@ -138,19 +103,19 @@ Renderer::Renderer()
     letterLayout.addLayoutElement(GL_FLOAT, 2);
     letterLayout.addLayoutElement(GL_FLOAT, 2);
     letterVBO->setLayout(&letterLayout);
-    letterBatch.vao->addBuffer(letterVBO);
+    letterBatch.batch.vao->addBuffer(letterVBO);
 }
 
 Renderer::~Renderer()
 {
-    delete lineBatch.vao;
-    delete lineBatch.ibo;
-    delete quadBatch.vao;
-    delete quadBatch.ibo;
-    delete letterBatch.vao;
-    delete letterBatch.ibo;
+    delete lineBatch.batch.vao;
+    delete lineBatch.batch.ibo;
+    delete quadBatch.batch.vao;
+    delete quadBatch.batch.ibo;
+    delete letterBatch.batch.vao;
+    delete letterBatch.batch.ibo;
 }
-
+/*
 void Renderer::renderVAO(VertexArray *vao, const Texture *texture, const Mat3 &model, const Mat3 &view, RenderType renderType)
 {
     if (!shader)
@@ -200,7 +165,7 @@ void Renderer::renderVAO(VertexArray *vao, const Texture *texture, const Mat3 &m
     workingShader->setUniformMat3("u_View", view);
     GLCALL(glDrawElements(glRenderFlag, numIndices, GL_UNSIGNED_INT, 0));
 }
-
+*/
 void Renderer::renderLine(VertexArray *vao)
 {
     if (!vao)
@@ -213,10 +178,86 @@ void Renderer::renderLine(VertexArray *vao)
     GLCALL(glDrawArrays(GL_LINES, 0, 2));
 }
 
+void Renderer::submitSprite(const Sprite* sprite, Mat3 model)
+{
+    SpriteBatch* spriteBatch = NULL; 
+    for (int i = 0; i < spriteBatches.size(); ++i)
+    {
+        if (spriteBatches[i].reference->id == sprite->texture->id)
+        {
+            spriteBatch = &spriteBatches[i];
+            break;
+        }
+    }
+    if (!spriteBatch)
+    {
+        spriteBatches.push_back({});
+        spriteBatch = &spriteBatches[spriteBatches.size() - 1];
+        initSpriteBatch(spriteBatch, sprite->texture);
+    }
+    spriteBatch->batch.vao->bind();
+    Buffer* buffer = spriteBatch->batch.vao->getBuffer(0);
+    buffer->bind();
+    SpriteData** spriteData = &spriteBatch->dataLayout;
+    *spriteData = (SpriteData*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + spriteBatch->batch.numVertices;
+    
+    Quad dim = sprite->dimensions;
+    const Texture* tex = sprite->texture;
+        
+    (*spriteData)->pos.x = dim.point0.x;
+    (*spriteData)->pos.y = dim.point0.y;        
+    (*spriteData)->texCoord = Vec2(0, 1);
+    for (int i = 0; i < 3; ++i)
+    {
+        (*spriteData)->model[i] = model.rows[i];
+        (*spriteData)->view[i] = viewMatrix.rows[i];
+    }
+
+    ++(*spriteData);
+
+    (*spriteData)->pos.x = dim.point1.x;
+    (*spriteData)->pos.y = dim.point1.y;        
+    (*spriteData)->texCoord = Vec2(0, 0);
+    for (int i = 0; i < 3; ++i)
+    {
+        (*spriteData)->model[i] = model.rows[i];
+        (*spriteData)->view[i] = viewMatrix.rows[i];
+    }
+
+    ++(*spriteData);
+
+    (*spriteData)->pos.x = dim.point2.x;
+    (*spriteData)->pos.y = dim.point2.y;        
+    (*spriteData)->texCoord = Vec2(1, 0);
+    for (int i = 0; i < 3; ++i)
+    {
+        (*spriteData)->model[i] = model.rows[i];
+        (*spriteData)->view[i] = viewMatrix.rows[i];
+    }
+
+    ++(*spriteData);
+
+    (*spriteData)->pos.x = dim.point3.x;
+    (*spriteData)->pos.y = dim.point3.y;        
+    (*spriteData)->texCoord = Vec2(1, 1);
+    for (int i = 0; i < 3; ++i)
+    {
+        (*spriteData)->model[i] = model.rows[i];
+        (*spriteData)->view[i] = viewMatrix.rows[i];
+    }
+
+    ++(*spriteData);
+        
+    spriteBatch->batch.numVertices += 4;
+    spriteBatch->batch.numIndices += 6;
+    
+    GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));    
+}
+
 void Renderer::submitLine(float x0, float y0, float x1, float y1, Vec2 offset)
 {
-    lineBatch.vao->bind();
-    Buffer *buffer = lineBatch.vao->getBuffer(0);
+    lineBatch.batch.vao->bind();
+    Buffer *buffer = lineBatch.batch.vao->getBuffer(0);
     buffer->bind();
     Mat3 model = Mat3::translation(offset);
     if (!buffer)
@@ -224,8 +265,8 @@ void Renderer::submitLine(float x0, float y0, float x1, float y1, Vec2 offset)
         std::cout << "[ERROR] Could not submit line to renderer. Buffer was NULL!" << std::endl;
         return;
     }
-    LineData** lineData = &(LineData*)lineBatch.dataLayout;
-    *lineData = (LineData *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + lineBatch.numVertices;
+    LineData** lineData = &lineBatch.dataLayout;
+    *lineData = (LineData *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + lineBatch.batch.numVertices;
     (*lineData)->pos.x = x0;
     (*lineData)->pos.y = y0;
     for (int i = 0; i < 3; ++i)
@@ -241,7 +282,7 @@ void Renderer::submitLine(float x0, float y0, float x1, float y1, Vec2 offset)
         (*lineData)->model[i] = model.rows[i];
         (*lineData)->view[i] = viewMatrix.rows[i];
     }
-    lineBatch.numVertices += 2;
+    lineBatch.batch.numVertices += 2;
 
     glUnmapBuffer(GL_ARRAY_BUFFER);
 }
@@ -257,8 +298,8 @@ void Renderer::submitQuad(float x0, float y0,
                           float x3, float y3,
                           Vec2 position, Vec4 color)
 {
-    quadBatch.vao->bind();
-    Buffer *buffer = quadBatch.vao->getBuffer(0);
+    quadBatch.batch.vao->bind();
+    Buffer *buffer = quadBatch.batch.vao->getBuffer(0);
     buffer->bind();
     Mat3 model = Mat3::translation(position);
     if (!buffer)
@@ -267,7 +308,7 @@ void Renderer::submitQuad(float x0, float y0,
         return;
     }
     QuadData** quadData = &(QuadData*)quadBatch.dataLayout;
-    (*quadData) = (QuadData *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + quadBatch.numVertices;
+    (*quadData) = (QuadData *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + quadBatch.batch.numVertices;
     (*quadData)->pos.x = x0;
     (*quadData)->pos.y = y0;
     for (int i = 0; i < 3; ++i)
@@ -303,9 +344,9 @@ void Renderer::submitQuad(float x0, float y0,
         (*quadData)->view[i] = viewMatrix.rows[i];
     }
     (*quadData)->color = color;
-    quadBatch.numVertices += 4;
+    quadBatch.batch.numVertices += 4;
 
-    quadBatch.numIndices += 6;
+    quadBatch.batch.numIndices += 6;
 
     GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));
 }
@@ -328,11 +369,11 @@ void Renderer::submitText(const std::string& text, Vec2 pos, float scale)
         message("[ERROR] Could not render text - Font was NULL!\n");
         return;
     }
-    letterBatch.vao->bind();
-    Buffer* buffer = letterBatch.vao->getBuffer(0);
+    letterBatch.batch.vao->bind();
+    Buffer* buffer = letterBatch.batch.vao->getBuffer(0);
     buffer->bind();
-    LetterData** letterData = &(LetterData*)letterBatch.dataLayout;
-    *letterData = (LetterData*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + letterBatch.numVertices;
+    LetterData** letterData = &letterBatch.dataLayout;
+    *letterData = (LetterData*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + letterBatch.batch.numVertices;
     float xAdvance = 0;
     for (int i = 0; i < text.size(); ++i)
     {
@@ -372,8 +413,8 @@ void Renderer::submitText(const std::string& text, Vec2 pos, float scale)
         ++(*letterData);
 
         xAdvance += l->xAdvance * scale;
-        letterBatch.numVertices += 4;
-        letterBatch.numIndices += 6;
+        letterBatch.batch.numVertices += 4;
+        letterBatch.batch.numIndices += 6;
     }
     
     GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));
@@ -393,26 +434,37 @@ void Renderer::setFont(Font* font)
 
 void Renderer::flush()
 {
-    lineBatch.vao->bind();
+    for (int i = 0; i < spriteBatches.size(); ++i)
+    {
+        SpriteBatch* spriteBatch = &spriteBatches[i];
+        spriteBatch->reference->bind();
+        spriteBatch->batch.vao->bind();
+        spriteBatch->batch.ibo->bind();
+        shader->bind();
+        GLCALL(glDrawElements(GL_TRIANGLES, spriteBatch->batch.numIndices, GL_UNSIGNED_INT, 0));
+        spriteBatch->batch.numVertices = 0;
+        spriteBatch->batch.numIndices = 0;
+    } 
+    lineBatch.batch.vao->bind();
     g_squareLineIBO->bind();
     lineShader->bind();
-    GLCALL(glDrawArrays(GL_LINES, 0, lineBatch.numVertices));
-    lineBatch.numVertices = 0;
+    GLCALL(glDrawArrays(GL_LINES, 0, lineBatch.batch.numVertices));
+    lineBatch.batch.numVertices = 0;
 
-    quadBatch.vao->bind();
-    quadBatch.ibo->bind();
+    quadBatch.batch.vao->bind();
+    quadBatch.batch.ibo->bind();
     quadShader->bind();
-    GLCALL(glDrawElements(GL_TRIANGLES, quadBatch.numIndices, GL_UNSIGNED_INT, 0));
-    quadBatch.numVertices = 0;
-    quadBatch.numIndices = 0;
+    GLCALL(glDrawElements(GL_TRIANGLES, quadBatch.batch.numIndices, GL_UNSIGNED_INT, 0));
+    quadBatch.batch.numVertices = 0;
+    quadBatch.batch.numIndices = 0;
 
     
-    letterBatch.vao->bind();
-    letterBatch.ibo->bind();
+    letterBatch.batch.vao->bind();
+    letterBatch.batch.ibo->bind();
     font->_atlas->bind();
     letterShader->bind();    
     letterShader->setUniformMat3("u_View", Mat3::view(Vec2(), 0, g_aspect));
-    GLCALL(glDrawElements(GL_TRIANGLES, letterBatch.numIndices, GL_UNSIGNED_INT, 0));
-    letterBatch.numVertices = 0;
-    letterBatch.numIndices = 0;
+    GLCALL(glDrawElements(GL_TRIANGLES, letterBatch.batch.numIndices, GL_UNSIGNED_INT, 0));
+    letterBatch.batch.numVertices = 0;
+    letterBatch.batch.numIndices = 0;
 }
