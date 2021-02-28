@@ -17,11 +17,13 @@ Game::Game()
     speed = 1.0f;
     accSpeed = speed * 2;
     player = spawnActor(Vec2(3.0f, 3.25f));
+    player->entity.name = "Player";
     //player->entity.rotation = 45.0f;
     camera.entity.pos = player->entity.pos;
     camera.entity.rotation = 0;
     currentCamera = &camera;
     debugCamera.entity.pos = player->entity.pos;
+    debugCamera.entity.rotation = 0;
     for (int i = 0; i < 3; ++i)
     {
         spawnActor(Vec2(0.7f + i * 0.4f, 0));
@@ -55,11 +57,14 @@ Actor *Game::spawnActor(Vec2 pos)
         std::cout << "[WARNING] Could not spawn actor - Limit reached!" << std::endl;
         return nullptr;
     }
+    static Sprite entitySprite {g_entityTexture, Quad(-0.1f, -0.1f, -0.1f, 0.1f, 0.1f, 0.1f, 0.1f, -0.1f)};
     Actor *e = &actorPool[numActors];
+    static unsigned int currentActorID = 0;
+    e->entity.id = currentActorID++;
+    e->entity.name = "Thingy " + std::to_string(e->entity.id);
     e->entity.pos = pos;
     e->entity.rotation = 0.0f;
-    e->texture = g_entityTexture;
-    e->vao = g_entityVAO;
+    e->sprite = &entitySprite;
     e->speed = speed;
     actors[numActors++] = e;
     return e;
@@ -141,14 +146,7 @@ void Game::update()
         }
     }
 
-    Tile* currentPlayerTile = tileMap.getTileAtPos(player->entity.pos);
-
-    if (currentPlayerTile->barrier)
-    {
-        g_renderer->submitText("COLLISION!", Vec2(0, 0.3f), 1.0f);
-    }
-
-    
+    Tile* currentPlayerTile = tileMap.getTileAtPos(player->entity.pos);    
 
     //player->entity.rotation += 0.05f;
     while (player->entity.rotation > 360.0f)
@@ -163,6 +161,11 @@ void Game::update()
 
     camera.entity.pos = player->entity.pos + playerForward * 0.3f * g_frameTime;
     camera.entity.rotation = player->entity.rotation;
+    if (g_debugMode)
+    {
+        g_renderer->submitText("Player Pos: X - " + std::to_string(player->entity.pos.x) +
+                               ", Y - " + std::to_string(player->entity.pos.y), Vec2(-0.1f, -0.3f));
+    }                      
 
 }
 
@@ -190,21 +193,65 @@ void Game::render()
     {
         angle += 80.0f * g_frameTime;
     }
-    Vec2 intersection = tileMap.findTileIntersection(player->entity.pos, dir);
-    Quad quad = Quad(-0.01f, -0.01f, -0.01f, 0.01f, 0.01f, 0.01f, 0.01f, -0.01f);
-    g_renderer->submitQuad(quad, intersection, Vec4(1, 0, 1, 1));
-    g_renderer->submitLine(player->entity.pos, player->entity.pos + dir, Vec2(0,0));
+    if (g_debugMode)
+    {
+        Vec2 intersection = tileMap.findTileIntersection(player->entity.pos, dir);
+        Quad quad = Quad(-0.01f, -0.01f, -0.01f, 0.01f, 0.01f, 0.01f, 0.01f, -0.01f);
+        g_renderer->submitQuad(quad, intersection, Vec4(1, 0, 1, 1));
+        g_renderer->submitLine(player->entity.pos, player->entity.pos + dir.normalize() * 0.3f, Vec2(0,0));
+    }
 }
 
 void Game::drawActor(Actor *e) const
 {
+    /*
     if (g_enableWireframe)
     {
         g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID_AND_WIREFRAME);
+
     }
     else
     {
-        g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID);
-    }
+    g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID);
+    }*/
+    g_renderer->submitSprite(e->sprite, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)));
 }
 
+
+Mat3 screenToWorldProjection(Game* game)
+{
+    Camera* camera = game->currentCamera;
+    Mat3 result = Mat3::translation(camera->entity.pos)
+        * Mat3::rotation(TO_RADIANS(camera->entity.rotation))
+        * Mat3::scale(Vec2(1, 1.0f / g_aspect));
+    return result;
+}
+
+DataStrings getDataFromPos(Game* game, Vec2 pos)
+{
+    DataStrings result;
+    static Quad entityQuad {-0.1f, -0.1f, -0.1f, 0.1f, 0.1f, 0.1f, 0.1f, -0.1f};
+    for (int i = 0; i < game->numActors; ++i)
+    {
+        Actor* actor = game->actors[i];
+        if (vec2IsBetween(pos, actor->entity.pos + entityQuad.point0, actor->entity.pos + entityQuad.point2))
+        {
+            result.strings.push_back(actor->entity.name);
+            result.strings.push_back(actor->sprite->texture->filepath);
+            return result; 
+        }
+                           
+    }
+    const Tile* tile = game->tileMap.getTileAtPos(pos);
+    if (!tile)
+    {
+        result.strings.push_back("No data");
+        return result;
+    }
+    result.strings.push_back("Barrier: " + std::to_string(tile->barrier));
+    if (tile->texture)
+    {
+        result.strings.push_back("Texture: " + tile->texture->filepath);
+    }
+    return result;
+}
