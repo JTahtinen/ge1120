@@ -178,80 +178,27 @@ void Renderer::renderLine(VertexArray *vao)
     GLCALL(glDrawArrays(GL_LINES, 0, 2));
 }
 
-void Renderer::submitSprite(const Sprite* sprite, Mat3 model)
+void Renderer::submitSprite(const Sprite* sprite, Mat3 model, Mat3 view)
 {
+    if (!sprite)
+    {
+        err("Could not submit sprite - pointer was NULL!\n");
+        return;
+    }
     SpriteBatch* spriteBatch = NULL; 
     for (int i = 0; i < spriteBatches.size(); ++i)
     {
         if (spriteBatches[i].reference->id == sprite->texture->id)
         {
-            spriteBatch = &spriteBatches[i];
-            break;
+            spriteBatches[i].renderables.push_back({sprite, model, view});
+            return;
         }
     }
-    if (!spriteBatch)
-    {
-        spriteBatches.push_back({});
-        spriteBatch = &spriteBatches[spriteBatches.size() - 1];
-        initSpriteBatch(spriteBatch, sprite->texture);
-    }
-    spriteBatch->batch.vao->bind();
-    Buffer* buffer = spriteBatch->batch.vao->getBuffer(0);
-    buffer->bind();
-    SpriteData** spriteData = &spriteBatch->dataLayout;
-    *spriteData = (SpriteData*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + spriteBatch->batch.numVertices;
-    
-    Quad dim = sprite->dimensions;
-    const Texture* tex = sprite->texture;
-        
-    (*spriteData)->pos.x = dim.point0.x;
-    (*spriteData)->pos.y = dim.point0.y;        
-    (*spriteData)->texCoord = Vec2(0, 1);
-    for (int i = 0; i < 3; ++i)
-    {
-        (*spriteData)->model[i] = model.rows[i];
-        (*spriteData)->view[i] = viewMatrix.rows[i];
-    }
-
-    ++(*spriteData);
-
-    (*spriteData)->pos.x = dim.point1.x;
-    (*spriteData)->pos.y = dim.point1.y;        
-    (*spriteData)->texCoord = Vec2(0, 0);
-    for (int i = 0; i < 3; ++i)
-    {
-        (*spriteData)->model[i] = model.rows[i];
-        (*spriteData)->view[i] = viewMatrix.rows[i];
-    }
-
-    ++(*spriteData);
-
-    (*spriteData)->pos.x = dim.point2.x;
-    (*spriteData)->pos.y = dim.point2.y;        
-    (*spriteData)->texCoord = Vec2(1, 0);
-    for (int i = 0; i < 3; ++i)
-    {
-        (*spriteData)->model[i] = model.rows[i];
-        (*spriteData)->view[i] = viewMatrix.rows[i];
-    }
-
-    ++(*spriteData);
-
-    (*spriteData)->pos.x = dim.point3.x;
-    (*spriteData)->pos.y = dim.point3.y;        
-    (*spriteData)->texCoord = Vec2(1, 1);
-    for (int i = 0; i < 3; ++i)
-    {
-        (*spriteData)->model[i] = model.rows[i];
-        (*spriteData)->view[i] = viewMatrix.rows[i];
-    }
-
-    ++(*spriteData);
-        
-    spriteBatch->batch.numVertices += 4;
-    spriteBatch->batch.numIndices += 6;
-    
-    GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));    
+     
+    spriteBatches.push_back({});
+    spriteBatch = &spriteBatches[spriteBatches.size() - 1];
+    initSpriteBatch(spriteBatch, sprite->texture);
+    spriteBatch->renderables.push_back({sprite, model, view});
 }
 
 void Renderer::submitLine(float x0, float y0, float x1, float y1, Vec2 offset)
@@ -430,21 +377,97 @@ void Renderer::setFont(Font* font)
     this->font = font;
 }
 
-// Currently the flush method is arranged only for testing purposes
-
-void Renderer::flush()
+void Renderer::flushSprites()
 {
-    for (int i = 0; i < spriteBatches.size(); ++i)
+
+    for (unsigned int spriteBatchIndex = 0; spriteBatchIndex < spriteBatches.size(); ++spriteBatchIndex)
     {
-        SpriteBatch* spriteBatch = &spriteBatches[i];
+        SpriteBatch* spriteBatch = &spriteBatches[spriteBatchIndex];
         spriteBatch->reference->bind();
         spriteBatch->batch.vao->bind();
         spriteBatch->batch.ibo->bind();
         shader->bind();
+
+
+        Buffer* buffer = spriteBatch->batch.vao->getBuffer(0);
+        buffer->bind();
+        SpriteData** spriteData = &spriteBatch->dataLayout;
+
+        *spriteData = (SpriteData*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        for (unsigned int spriteIndex = 0; spriteIndex < spriteBatch->renderables.size(); ++spriteIndex)
+        {
+            const SpriteRenderable* renderable = &spriteBatch->renderables[spriteIndex];
+            const Sprite* sprite = renderable->sprite;
+            Mat3 model = renderable->model;
+            Mat3 view = renderable->view;
+            Quad dim = sprite->dimensions;
+         
+            (*spriteData)->pos.x = dim.point0.x;
+            (*spriteData)->pos.y = dim.point0.y;        
+            (*spriteData)->texCoord = Vec2(0, 1);
+            for (int i = 0; i < 3; ++i)
+            {
+                (*spriteData)->model[i] = model.rows[i];
+                (*spriteData)->view[i] = view.rows[i];
+            }
+
+            ++(*spriteData);
+
+            (*spriteData)->pos.x = dim.point1.x;
+            (*spriteData)->pos.y = dim.point1.y;        
+            (*spriteData)->texCoord = Vec2(0, 0);
+            for (int i = 0; i < 3; ++i)
+            {
+                (*spriteData)->model[i] = model.rows[i];
+                (*spriteData)->view[i] = view.rows[i];
+            }
+
+            ++(*spriteData);
+
+            (*spriteData)->pos.x = dim.point2.x;
+            (*spriteData)->pos.y = dim.point2.y;        
+            (*spriteData)->texCoord = Vec2(1, 0);
+            for (int i = 0; i < 3; ++i)
+            {
+                (*spriteData)->model[i] = model.rows[i];
+                (*spriteData)->view[i] = view.rows[i];
+            }
+
+            ++(*spriteData);
+
+            (*spriteData)->pos.x = dim.point3.x;
+            (*spriteData)->pos.y = dim.point3.y;        
+            (*spriteData)->texCoord = Vec2(1, 1);
+            for (int i = 0; i < 3; ++i)
+            {
+                (*spriteData)->model[i] = model.rows[i];
+                (*spriteData)->view[i] = view.rows[i];
+            }
+
+            ++(*spriteData);
+        
+            spriteBatch->batch.numVertices += 4;
+            spriteBatch->batch.numIndices += 6;
+        }    
+        GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));    
         GLCALL(glDrawElements(GL_TRIANGLES, spriteBatch->batch.numIndices, GL_UNSIGNED_INT, 0));
         spriteBatch->batch.numVertices = 0;
         spriteBatch->batch.numIndices = 0;
-    } 
+        spriteBatch->renderables.clear();
+    }
+    //spriteBatches.clear();
+    
+}
+    void flushQuads();
+    void flushLetters();
+    void flushLines();
+
+// Currently the flush method is arranged only for testing purposes
+
+void Renderer::flush()
+{
+    flushSprites();
+    
     lineBatch.batch.vao->bind();
     g_squareLineIBO->bind();
     lineShader->bind();
