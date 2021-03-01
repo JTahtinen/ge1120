@@ -35,4 +35,4 @@ struct Game
 };
 
 extern Mat3 screenToWorldProjection(Game* game);
-extern DataStrings getDataFromPos(Game* game, Vec2 pos);
+extern void getDataFromPos(Game* game, Vec2 pos, DataStrings* result);

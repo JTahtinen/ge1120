@@ -214,7 +214,7 @@ void Game::drawActor(Actor *e) const
     {
     g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID);
     }*/
-    g_renderer->submitSprite(e->sprite, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)));
+    g_renderer->submitSprite(e->sprite, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view);
 }
 
 
@@ -227,31 +227,34 @@ Mat3 screenToWorldProjection(Game* game)
     return result;
 }
 
-DataStrings getDataFromPos(Game* game, Vec2 pos)
+void getDataFromPos(Game* game, Vec2 pos, DataStrings* result)
 {
-    DataStrings result;
+    
     static Quad entityQuad {-0.1f, -0.1f, -0.1f, 0.1f, 0.1f, 0.1f, 0.1f, -0.1f};
     for (int i = 0; i < game->numActors; ++i)
     {
         Actor* actor = game->actors[i];
         if (vec2IsBetween(pos, actor->entity.pos + entityQuad.point0, actor->entity.pos + entityQuad.point2))
         {
-            result.strings.push_back(actor->entity.name);
-            result.strings.push_back(actor->sprite->texture->filepath);
-            return result; 
+            result->strings.push_back(actor->entity.name);
+            result->strings.push_back(actor->sprite->texture->filepath);
+            return; 
         }
                            
     }
     const Tile* tile = game->tileMap.getTileAtPos(pos);
+    iPoint tileIndex = game->tileMap.getTileIndexAt(pos);
+    result->strings.push_back("Tile index: X(" + std::to_string(tileIndex.x) + ") Y("  +
+                              std::to_string(tileIndex.y) + ")");
     if (!tile)
     {
-        result.strings.push_back("No data");
-        return result;
+        result->strings.push_back("No data");
+        return;
     }
-    result.strings.push_back("Barrier: " + std::to_string(tile->barrier));
+    
+    result->strings.push_back("Barrier: " + std::to_string(tile->barrier));
     if (tile->texture)
     {
-        result.strings.push_back("Texture: " + tile->texture->filepath);
+        result->strings.push_back("Texture: " + tile->texture->filepath);
     }
-    return result;
 }

@@ -45,7 +45,7 @@ struct TileMap
     ~TileMap();
     bool init(int width, int height);
     Tile* getTileAtPos(Vec2 worldPos);
-    Vec2 getTileIndexAt(Vec2 worldPos);
+    iPoint getTileIndexAt(Vec2 worldPos);
     void setTile(int x, int y, Tile* tile);
     Tile* getTile(int x, int y);
     Vec2 checkTileCollision(Vec2 pos, Vec2 vel);
