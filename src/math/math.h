@@ -81,10 +81,24 @@ inline Vec2 createVec2FromAngle(float degrees)
     return result;
 }
 
+inline int floorToInt(float val)
+{
+    int result;
+    if (val < 0)
+    {
+        result = (int)(val - 1.0f);
+    }
+    else
+    {
+        result = (int)val;
+    }
+    return result;
+}
+
 inline float fremainder(float value, float divider)
 {
     if (divider == 0) return 0;
-    float valFloor = (float)((int)(value / divider));
+    float valFloor = (float)(floorToInt(value / divider));
     float result = value - valFloor * divider;
     return result;
 }
