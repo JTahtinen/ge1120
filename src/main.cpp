@@ -17,6 +17,7 @@
 #include "util/timer.h"
 #include <string>
 #include <thread>
+#include "graphics/font.h"
 
 static bool running;
 
@@ -31,6 +32,23 @@ static Timer frameTimer;
 static unsigned int frameCap = 60;
 
 static bool displayWorldInfo = false;
+
+float calculateStringWidth(std::string text, Font* font, float scale = 0.2f)
+{
+    if (!font)
+    {
+        err("Could not calculate string width - font was NULL!\n");
+        return 0;
+    }
+    float result = 0;
+    for (unsigned int i = 0; i < text.size(); ++i)
+    {
+        Letter* c = font->getLetter(text[i]);
+        result += c->xAdvance * scale;
+    }
+    return result;
+}
+
 struct Button
 {
     void (*callback)();
@@ -139,14 +157,27 @@ static void updateGame()
         
             g_renderer->submitText(std::to_string(projectedMousePos.x) + " " + std::to_string(projectedMousePos.y),
                                    fixedMousePos + Vec2(0.01f, 0.02f));
-            DataStrings dataStrings = getDataFromPos(game, projectedMousePos);
+            DataStrings dataStrings;
+            getDataFromPos(game, projectedMousePos, &dataStrings);
             
             //Tile* tile = game->tileMap.getTileAtPos(projectedMousePos);
 
             float offset = -0.07f;
             unsigned int numStrings = dataStrings.strings.size();
-            Quad textBoxDim {0, 0, 0.2f, 0, 0.2f, (float)numStrings * -0.06f, 0, (float)numStrings * -0.06f}; 
-            g_renderer->submitQuad(textBoxDim, mousePos + Vec2(0.01f, offset), Vec4(0, 0, 0, 0.3f));
+            float longestStringWidth = 0;
+            for (unsigned int i = 0; i < numStrings; ++i)
+            {
+                float currentStringWidth = calculateStringWidth(dataStrings.strings[i], g_renderer->font);
+                if (currentStringWidth > longestStringWidth)
+                {
+                    longestStringWidth = currentStringWidth;
+                }
+            }
+            Quad textBoxDim {0, 0,
+                    longestStringWidth, 0,
+                    longestStringWidth, (float)numStrings * -0.06f,
+                    0, (float)numStrings * -0.06f}; 
+            g_renderer->submitQuad(textBoxDim, mousePos + Vec2(0.01f, offset), Vec4(0, 0, 0, 0.5f));
             for (unsigned int i = 0; i < numStrings; ++i)
             {
                 g_renderer->submitText(dataStrings.strings[i],
@@ -235,6 +266,7 @@ static void run()
     unsigned int seconds = 0;
     unsigned int frames = 0;
     unsigned int frameTimeInMillis = 0;
+    unsigned int uncappedFrametime = 0;
     while (running)
     {
         frameTimer.update();
@@ -261,16 +293,21 @@ static void run()
             framesPerSec = frames;
             frames = 0;
         }
+       
         if (g_debugMode)
         {
             g_renderer->submitText("frametime: " + std::to_string((int)(g_frameTime * 1000.f))+ "ms", Vec2(-0.95f, 0.5f));
+       
             g_renderer->submitText("fps: " + std::to_string(framesPerSec), Vec2(-0.95, 0.47f));
             g_renderer->submitText("time(sec): " + std::to_string(seconds), Vec2(-0.95, 0.44f));
+            g_renderer->submitText("uncapped frametime: " + std::to_string(uncappedFrametime) + "ms", Vec2(-0.95, 0.41f));
         }
-        frameTimeInMillis = frameTimer.getMillisSinceLastUpdate();
-        if (frameTimeInMillis < minFrameTime)
+        uncappedFrametime = frameTimer.getMillisSinceLastUpdate();
+ 
+        
+        if (uncappedFrametime < minFrameTime)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(minFrameTime - frameTimeInMillis));
+            std::this_thread::sleep_for(std::chrono::milliseconds(minFrameTime - uncappedFrametime));
         }
 
         frameTimeInMillis = frameTimer.getMillisSinceLastUpdate();
