@@ -15,14 +15,14 @@ public:
         reserve(capacity);
     }
 
-    inline Vector(const Vector& other)
+    inline Vector(const Vector<T>& other)
         : _size(other._size)
         , _capacity(other._capacity)
     {
         if (_capacity > 0)
         {
             _data = (T*)g_memory.reserve(sizeof(T) * _capacity);
-            memcpy(_data, other._data, _size);
+            memcpy(_data, other._data, _size * sizeof(T));
         }
     }
     
@@ -123,6 +123,11 @@ public:
     inline void erase(size_t index)
     {
         erase(index, 1);
+    }
+
+    inline void clear()
+    {
+        _size = 0;
     }
 
     inline size_t size()
