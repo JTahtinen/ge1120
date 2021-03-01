@@ -6,8 +6,8 @@
 #include "../globals.h"
 #include "renderdefs.h"
 #include "texture.h"
-
-
+#include "../math/mat3.h"
+#include <vector>
 struct Batch
 {
     VertexArray*  vao;
@@ -16,10 +16,17 @@ struct Batch
     unsigned int  numIndices;
 };
 
+struct SpriteRenderable
+{
+    const Sprite* sprite;
+    Mat3 model;
+    Mat3 view;
+};
+
 struct SpriteBatch
 {
     const Texture* reference;
-    Vector<Sprite> sprites;
+    Vector<SpriteRenderable> renderables;
     Batch batch;
     SpriteData* dataLayout;
 };
@@ -50,6 +57,7 @@ inline bool initBatch(Batch* target)
         err("Could not init batch - pointer was NULL!\n");
         return false;
     }
+
     target->vao = new VertexArray();
     target->ibo = new IndexBuffer();
     target->numVertices = 0;
@@ -66,6 +74,7 @@ inline bool initSpriteBatch(SpriteBatch* target, const Texture* reference)
     }
     
     target->reference = reference;
+    target->renderables.reserve(300);
 
     initBatch(&target->batch);
     target->batch.vao->bind();
