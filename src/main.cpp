@@ -18,6 +18,7 @@
 #include <string>
 #include <thread>
 #include "graphics/font.h"
+#include "util/file.h"
 
 static bool running;
 
@@ -106,10 +107,6 @@ static void updateInputs()
     if (g_input.isKeyPressed(KEY_ESCAPE))
     {
         running = false;
-    }
-    if (g_input.isKeyTyped(KEY_Q))
-    {
-        g_enableWireframe = !g_enableWireframe;
     }
 }
 
@@ -395,9 +392,10 @@ int main(int argc, char** argv)
 #else
     message("GE1120 RELEASE build\n");
 #endif
+    
     if (!start())
     {
-        message("[ERROR] Game initialization failed\n");
+        err("Game initialization failed\n");
     }
     else
     {
