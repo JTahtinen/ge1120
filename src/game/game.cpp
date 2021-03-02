@@ -54,7 +54,7 @@ Actor *Game::spawnActor(Vec2 pos)
 {
     if (numActors >= MAX_GAME_ENTITIES)
     {
-        std::cout << "[WARNING] Could not spawn actor - Limit reached!" << std::endl;
+        warn("Could not spawn actor - Limit reached!\n");
         return nullptr;
     }
     static Sprite entitySprite {g_entityTexture, Quad(-0.1f, -0.1f, -0.1f, 0.1f, 0.1f, 0.1f, 0.1f, -0.1f)};
@@ -134,6 +134,10 @@ void Game::update()
     if (g_input.isKeyPressed(KEY_DOWN))
     {
         debugCamera.entity.pos.y -= playerFrameVel;
+    }
+    if (g_input.isKeyTyped(KEY_Q))
+    {
+        
     }
 
     for (int i = 0; i < numActors; ++i)
