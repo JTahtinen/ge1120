@@ -141,7 +141,7 @@ Buffer *VertexArray::getBuffer(unsigned int index)
     {
         return buffers[index];
     }
-    std::cout << "[ERROR] Could not get buffer, index: " << index << " from VertexArray, ID: " << id << "!" << std::endl;
+    err("Could not get buffer, index: &d from VertexArray, ID: %d\n", index, id);
     return nullptr;
 }
 
