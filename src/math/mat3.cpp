@@ -91,13 +91,14 @@ Mat3 Mat3::scale(Vec2 amount)
     return result;
 }
 
-Mat3 Mat3::view(Vec2 pos, float angle, float aspect)
+Mat3 Mat3::view(Vec2 pos, float angle, float scalar, float aspect)
 {
     Mat3 trans = translation(pos);
     Mat3 rot = rotation(angle);
-    Mat3 sc = scale(Vec2(1.0f, aspect));
-    Mat3 result = sc * rot * trans;
-    
+    Mat3 asp = scale(Vec2(1.0f, aspect));
+    Mat3 sc = scale(Vec2(scalar, scalar));
+    Mat3 result = (sc * asp * rot * trans);
+    //Mat3 result = trans * rot * sc * asp;
     return result;
 }
 
