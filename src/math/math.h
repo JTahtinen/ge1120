@@ -59,9 +59,34 @@ inline bool valIsBetween(float val, float min, float max)
     return result;
 }
 
-inline bool vec2IsBetween(Vec2 vec, Vec2 min, Vec2 max)
+inline bool vec2WithinRect(Vec2 vec, Vec2 point0, Vec2 point1)
 {
-    bool result = (valIsBetween(vec.x, min.x, max.x) && valIsBetween(vec.y, min.y, max.y));
+    float minX;
+    float minY;
+    float maxX;
+    float maxY;
+    if (point0.x < point1.x)
+    {
+        minX = point0.x;
+        maxX = point1.x;
+    }
+    else
+    {
+        minX = point1.x;
+        maxX = point0.x;
+    }
+    if (point0.y < point1.y)
+    {
+        minY = point0.y;
+        maxY = point1.y;
+    }
+    else
+    {
+        minX = point1.y;
+        maxY = point0.y;
+    }
+    
+    bool result = (valIsBetween(vec.x, minX, maxX) && valIsBetween(vec.y, minY, maxY));
     return result;
 }
 
