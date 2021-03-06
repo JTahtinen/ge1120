@@ -1,24 +1,23 @@
 #include <iostream>
-#include <cstdint>
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 #include "globals.h"
 #include "defs.h"
-#include "graphics/shader.h"
-#include "graphics/texture.h"
 #include <SDL2/SDL_image.h>
 #include "math/vec2.h"
 #include "game/game.h"
 #include "math/math.h"
-#include "graphics/vertexarray.h"
+#include "graphics/font.h"
+
 #include "graphics/renderer.h"
 #include "system/memory.h"
 #include "util/vector.h"
 #include "util/timer.h"
 #include <string>
 #include <thread>
-#include "graphics/font.h"
+
 #include "util/file.h"
+#include "ui/ui.h"
 
 static bool running;
 
@@ -33,77 +32,16 @@ static Timer frameTimer;
 static unsigned int frameCap = 60;
 
 static bool displayWorldInfo = false;
-
-float calculateStringWidth(std::string text, Font* font, float scale = 0.2f)
-{
-    if (!font)
-    {
-        err("Could not calculate string width - font was NULL!\n");
-        return 0;
-    }
-    float result = 0;
-    for (unsigned int i = 0; i < text.size(); ++i)
-    {
-        Letter* c = font->getLetter(text[i]);
-        result += c->xAdvance * scale;
-    }
-    return result;
-}
-
-struct Button
-{
-    void (*callback)();
-    Quad dimensions;
-    Vec2 pos;
-};
-
-void updateButton(const Button* button)
-{
-    static Vec4 buttonIdleColor(0.6f, 0.6f, 0.6f, 1.0f);
-    static Vec4 buttonHighlightColor(0.8f, 0.8f, 0.8f, 1.0f);
-    static Vec4 buttonClickColor(1, 1, 1, 1);
-    static Vec4* buttonColor = &buttonIdleColor;
-    if (g_mouseState)
-    {
-        Vec2 mousePos((float)g_input.mouseX / (float)windowWidth * 2.0f - 1.0f,
-                      -((float)(g_input.mouseY / (float)windowHeight * 2.0f - 1.0f)));
-        
-
-        if (vec2IsBetween(mousePos, button->pos, button->pos + button->dimensions.point2))
-        {
-            if (g_input.mouseLeftClicked)
-            {
-                button->callback();
-                buttonColor = &buttonClickColor;
-            }
-            else
-            {
-                buttonColor = &buttonHighlightColor;
-            }
-        }
-        else
-        {
-            buttonColor = &buttonIdleColor;
-        }
-
-    }
-    g_renderer->setView(Mat3::identity());
-    g_renderer->submitQuad(button->dimensions, button->pos, *buttonColor);    
-}
-
-void toggleDisplayWorldInfo()
-{
-    displayWorldInfo = !displayWorldInfo;
-}
-
-void toggleDebugMode()
-{
-    g_debugMode = !g_debugMode;
-}
-
+static UI* ui;
+static bool viewDebugUI = false;
+static bool displayMemoryInfo = false;
+static bool displayTimerInfo = false;
 static void updateInputs()
 {
     g_input.update();
+    g_mousePosRaw = Vec2((float)g_input.mouseX / (float)windowWidth * 2.0f - 1.0f,
+                      -((float)g_input.mouseY / (float)windowHeight * 2.0f - 1.0f));
+    g_mousePos = Vec2(g_mousePosRaw.x, g_mousePosRaw.y * (1.0f / g_aspect));
     if (g_input.isKeyPressed(KEY_ESCAPE))
     {
         running = false;
@@ -126,11 +64,12 @@ static void updateWindow()
         }
     }
     g_renderer->setView(Mat3::identity());
-    if (g_debugMode)
+    if (displayMemoryInfo)
     {
         g_memory.visualize();
     }
-    g_renderer->submitText("F1 - Toggle debug mode", Vec2(0.4f, -0.5f));
+    g_renderer->submitText("F1 - Debug toolbox", Vec2(0.4f, -0.5f));
+    g_renderer->submitText("RMB - Switch mouse mode", Vec2(0.4f, -0.53f));
     g_renderer->flush();
     SDL_GL_SwapWindow(win);
 }
@@ -138,26 +77,30 @@ static void updateWindow()
 
 static void updateGame()
 {
+    static unsigned int debugToggleButton = createButton("Debug mode", ui);
+    static unsigned int worldInfoButton = createButton("World info", ui);
+    static unsigned int memoryInfoButton = createButton("Memory", ui);
+    static unsigned int timerInfoButton = createButton("Timers", ui);
+    
+    if (viewDebugUI)
+    {
+        updateUI(ui);
+    }
     if (displayWorldInfo)
     {
         if (g_mouseState)
         {
-            Vec2 mousePos((float)g_input.mouseX / (float)windowWidth * 2.0f - 1.0f,
-                          -((float)(g_input.mouseY / (float)windowHeight * 2.0f - 1.0f)));
             
-
-            //static Mat3 screenProj = Mat3::view(Vec2(), 0, g_aspect);
             g_renderer->setView(Mat3::identity());
             Mat3 cameraToScreen = screenToWorldProjection(game);
-            Vec2 projectedMousePos = cameraToScreen * mousePos;
-            Vec2 fixedMousePos = Vec2(mousePos.x, mousePos.y * (1.0f / g_aspect));
+            Vec2 projectedMousePos = cameraToScreen * g_mousePosRaw;
+            //Vec2 fixedMousePos = Vec2(g_mousePos.x, g_mousePos.y * (1.0f / g_aspect));
         
-            g_renderer->submitText(std::to_string(projectedMousePos.x) + " " + std::to_string(projectedMousePos.y),
-                                   fixedMousePos + Vec2(0.01f, 0.02f));
+            g_renderer->submitText(std::to_string(projectedMousePos.x)
+                                   + " " + std::to_string(projectedMousePos.y),
+                                   g_mousePos + Vec2(0.01f, 0.02f));
             DataStrings dataStrings;
             getDataFromPos(game, projectedMousePos, &dataStrings);
-            
-            //Tile* tile = game->tileMap.getTileAtPos(projectedMousePos);
 
             float offset = -0.07f;
             unsigned int numStrings = dataStrings.strings.size();
@@ -174,16 +117,15 @@ static void updateGame()
                     longestStringWidth, 0,
                     longestStringWidth, (float)numStrings * -0.06f,
                     0, (float)numStrings * -0.06f}; 
-            g_renderer->submitQuad(textBoxDim, mousePos + Vec2(0.01f, offset), Vec4(0, 0, 0, 0.5f));
+            g_renderer->submitQuad(textBoxDim, g_mousePosRaw + Vec2(0.01f, offset), Vec4(0, 0, 0, 0.5f));
             for (unsigned int i = 0; i < numStrings; ++i)
             {
                 g_renderer->submitText(dataStrings.strings[i],
-                                   Vec2(mousePos.x, mousePos.y * (1.0f / g_aspect)) + Vec2(0.01f, offset));
+                                       g_mousePos + Vec2(0.01f, offset));
                 offset -= 0.03f;
             }
         }
-    } 
-    
+    }
     if (g_input.isKeyTyped(KEY_B) || g_input.mouseRightClicked)
     {
         g_mouseState = !g_mouseState;
@@ -198,54 +140,33 @@ static void updateGame()
     }
     if (g_input.isKeyTyped(KEY_F1))
     {
+        viewDebugUI = !viewDebugUI;
+    }
+
+    if (doButton(debugToggleButton, ui))
+    {
         g_debugMode = !g_debugMode;
     }
-
-
-    /*
-    static void **pointers = new void *[60000];
-    static unsigned int numPointers = 0;
-
-    ASSERT(numPointers <= 60000);
-
-    if (g_input.isKeyTyped(KEY_N))
+    if (doButton(worldInfoButton, ui))
     {
-        void *p = g_memory.reserve(10);
-        if (p)
-        {
-            pointers[numPointers++] = p;
-        }
-        g_memory.printState();
+        displayWorldInfo = !displayWorldInfo;
     }
-    if (g_input.isKeyPressed(KEY_M))
+    if (doButton(memoryInfoButton, ui))
     {
-        for (int i = 0; i < 10; ++i)
-        {
-            if (g_input.isKeyTyped(KEY_0 + i))
-            {
-                if (i < numPointers)
-                {
-                    if (g_memory.release(pointers[i]))
-                    {
-                        for (int j = i; j < numPointers - 1; ++j)
-                        {
-                            pointers[j] = pointers[j + 1];
-                        }
-                        --numPointers;
-                    }
-                    g_memory.printState();
-                }
-            }
-        }
+        displayMemoryInfo = !displayMemoryInfo;
     }
-*/
-    static Button button = {toggleDisplayWorldInfo, Quad(0, 0, 0, 0.03f, 0.06f, 0.03f, 0.06f, 0), Vec2(-0.9f, -0.3f)};
-    static Button button2 = {toggleDebugMode, Quad(0, 0, 0, 0.03f, 0.06f, 0.03f, 0.06f, 0), Vec2(-0.9f, -0.4f)};
+    if (doButton(timerInfoButton, ui))
+    {
+        displayTimerInfo = !displayTimerInfo;
+    }
+  
+
     game->update();
-    updateButton(&button);
-    updateButton(&button2);
     game->render();
-
+    if (viewDebugUI)
+    {
+        drawUI(ui);
+    }
 }
 
 static void updateSystem()
@@ -291,13 +212,19 @@ static void run()
             frames = 0;
         }
        
-        if (g_debugMode)
+        if (displayTimerInfo)
         {
-            g_renderer->submitText("frametime: " + std::to_string((int)(g_frameTime * 1000.f))+ "ms", Vec2(-0.95f, 0.5f));
+            g_renderer->submitText("frametime: "
+                                   + std::to_string((int)(g_frameTime * 1000.f))
+                                   + "ms", Vec2(-0.95f, 0.5f));
        
-            g_renderer->submitText("fps: " + std::to_string(framesPerSec), Vec2(-0.95, 0.47f));
-            g_renderer->submitText("time(sec): " + std::to_string(seconds), Vec2(-0.95, 0.44f));
-            g_renderer->submitText("uncapped frametime: " + std::to_string(uncappedFrametime) + "ms", Vec2(-0.95, 0.41f));
+            g_renderer->submitText("fps: "
+                                   + std::to_string(framesPerSec), Vec2(-0.95, 0.47f));
+            g_renderer->submitText("time(sec): "
+                                   + std::to_string(seconds), Vec2(-0.95, 0.44f));
+            g_renderer->submitText("uncapped frametime: "
+                                   + std::to_string(uncappedFrametime)
+                                   + "ms", Vec2(-0.95, 0.41f));
         }
         uncappedFrametime = frameTimer.getMillisSinceLastUpdate();
  
@@ -322,7 +249,7 @@ static bool start()
         windowWidth = 1280;
         windowHeight = 720;
         g_aspect = (float)windowWidth / (float)windowHeight;
-
+        g_view = Mat3::scale(Vec2(1.0f, g_aspect));
         SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
         SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
@@ -370,11 +297,18 @@ static bool start()
         }
         else
         {
-            game = new Game();
-            frameTimer.start();
+            static UI debugUI;
+            
+            //ui = createUI("DEBUG");
+            if (initUI("DEBUG", &debugUI))
+            {
+                ui = &debugUI;
+                game = new Game();
+                frameTimer.start();
 
-            run();
-            delete game;
+                run();
+                delete game;
+            }
         }
     }
     else
