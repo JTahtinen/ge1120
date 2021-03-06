@@ -14,8 +14,8 @@ out vec4 v_Color;
 void main()
 {
 	v_Color = color;
-    mat3 model = transpose(mat3(model0, model1, model2));
-    mat3 view = transpose(mat3(view0, view1, view2));
+	mat3 model = transpose(mat3(model0, model1, model2));
+    	mat3 view = transpose(mat3(view0, view1, view2));
 	vec3 pos3 = view * model * vec3(position.xy, 1);
 	gl_Position = vec4(pos3.xy, 0, 1);
 }
