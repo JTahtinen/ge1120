@@ -133,7 +133,7 @@ bool Memory::release(void *address)
         return false;
     }
     MemoryBlockInfo block = reservedMemoryInfo[address];
-    memset((uint8_t*)allocation + block.start, 0, block.end - block.start);
+//    memset((uint8_t*)allocation + block.start, 0, block.end - block.start);
     if (numReservedMemoryIndices == 0)
     {
         reservedMemoryIndices[numReservedMemoryIndices++] = block.start;
@@ -261,7 +261,7 @@ void Memory::visualize()
     g_renderer->submitText("Total Bytes: " + std::to_string(allocationSize), Vec2(-0.9f, 0.24f));
     g_renderer->submitText("Reserved Bytes: " + std::to_string(allocationSize - availableMemory), Vec2(-0.9f, 0.21f));
     g_renderer->submitText("Available Bytes: " + std::to_string(availableMemory), Vec2(-0.9f, 0.18f));
-    static Mat3 view = Mat3::view(Vec2(), 0, g_aspect);
+    static Mat3 view = Mat3::view(Vec2(), 0, 1, g_aspect);
     g_renderer->setView(view);
     static Vec2 barDim(0.4f, 0.03f);
     static Vec2 barPos(-0.9f, 0.3f);
