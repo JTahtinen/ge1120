@@ -33,6 +33,7 @@ struct LetterData
 {
     Vec2 pos;
     Vec2 texCoord;
+    Vec3 view[3];
 };
 
 #define MAX_RENDERABLES (60000)
