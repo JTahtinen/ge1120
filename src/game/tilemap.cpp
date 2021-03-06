@@ -117,6 +117,8 @@ void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool st
 
     int yLen = (abs)(endTileY - startTileY);
 
+    if (yLen > MAX_TILE_RASTER_BUFFER_YLEN - 1) return;
+
     if (yLen > 50)
     {
         yLen = 50;
@@ -223,22 +225,26 @@ void TileMap::draw(Camera* camera, Mat3& view)
     int xStartIndex = 0;
     for (int i = 0; i < xStartBuffer0.yLength; ++i)
     {
+        ASSERT(i < MAX_TILE_RASTER_BUFFER_YLEN)
         combinedBuffer[(xStartIndex + i) * 2 + 0] = xStartBuffer0.buffer[i];
     }
     xStartIndex += xStartBuffer0.yLength;
     for (int i = 0; i < xStartBuffer1.yLength; ++i)
     {
+        ASSERT(i < MAX_TILE_RASTER_BUFFER_YLEN)
         combinedBuffer[(xStartIndex + i) * 2 + 0] = xStartBuffer1.buffer[i];
     }
 
     int xEndIndex = 0;
     for (int i = 0; i < xEndBuffer0.yLength; ++i)
     {
+        ASSERT(i < MAX_TILE_RASTER_BUFFER_YLEN)
         combinedBuffer[(xEndIndex + i) * 2 + 1] = xEndBuffer0.buffer[i];
     }
     xEndIndex += xEndBuffer0.yLength;
     for (int i = 0; i < xEndBuffer1.yLength; ++i)
     {
+        ASSERT(i < MAX_TILE_RASTER_BUFFER_YLEN)
         combinedBuffer[(xEndIndex + i) * 2 + 1] = xEndBuffer1.buffer[i];
     }
 
@@ -252,9 +258,15 @@ void TileMap::draw(Camera* camera, Mat3& view)
         for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 1; ++x)
         {
             if (x < 0)
-                continue;
+            {
+                if (combinedBuffer[y * 2 + 1] <= 0) break;
+                else x = 0;                                                                    
+            }
+
             if (x >= width)
+            {
                 break;
+            }
             ASSERT(x > -1);
             
             Tile* tile = getTile(x, bottomTileY + y);
