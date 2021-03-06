@@ -11,13 +11,13 @@
 Renderer::Renderer()
 {
     viewMatrix = Mat3::identity();
-
+    spriteBatches.init(30);
     
     // LINE BATCH INIT
     initBatch(&lineBatch.batch);
     
     lineBatch.batch.vao->bind();
-    
+    lineBatch.lines.init(300);
     unsigned int *lineIndices = new unsigned int[LINE_INDICES_SIZE];
     unsigned int offset = 0;
     for (int i = 0; i < LINE_INDICES_SIZE; i += 2)
@@ -102,6 +102,10 @@ Renderer::Renderer()
     BufferLayout letterLayout;
     letterLayout.addLayoutElement(GL_FLOAT, 2);
     letterLayout.addLayoutElement(GL_FLOAT, 2);
+    for (int i = 0; i < 3; ++i)
+    {
+        letterLayout.addLayoutElement(GL_FLOAT, 3);
+    }
     letterVBO->setLayout(&letterLayout);
     letterBatch.batch.vao->addBuffer(letterVBO);
 }
@@ -186,7 +190,7 @@ void Renderer::submitSprite(const Sprite* sprite, Mat3 model, Mat3 view)
         return;
     }
     SpriteBatch* spriteBatch = NULL; 
-    for (int i = 0; i < spriteBatches.size(); ++i)
+    for (int i = 0; i < spriteBatches.size; ++i)
     {
         if (spriteBatches[i].reference->id == sprite->texture->id)
         {
@@ -196,7 +200,7 @@ void Renderer::submitSprite(const Sprite* sprite, Mat3 model, Mat3 view)
     }
      
     spriteBatches.push_back({});
-    spriteBatch = &spriteBatches[spriteBatches.size() - 1];
+    spriteBatch = &spriteBatches[spriteBatches.size - 1];
     initSpriteBatch(spriteBatch, sprite->texture);
     spriteBatch->renderables.push_back({sprite, model, view});
 }
@@ -309,7 +313,7 @@ void Renderer::submitQuad(Quad quad, Vec2 position, Vec4 color)
 }
 
 
-void Renderer::submitText(const std::string& text, Vec2 pos, float scale)
+void Renderer::submitText(const std::string& text, Vec2 pos, Mat3 view, float scale)
 {
     if (!font)
     {
@@ -337,26 +341,42 @@ void Renderer::submitText(const std::string& text, Vec2 pos, float scale)
         }
 
         float xOff = l->xOffset;
-        float yOff = (font->_base - l->height - l->yOffset);
+        float yOff = (font->base - l->height - l->yOffset);
         
         (*letterData)->pos.x = xAdvance + pos.x + xOff * scale;
         (*letterData)->pos.y = pos.y + yOff * scale;        
         (*letterData)->texCoord = Vec2(l->x, l->y + l->height);
+        for (int i = 0; i < 3; ++i)
+        {
+            (*letterData)->view[i] = view.rows[i]; 
+        }
         ++(*letterData);
         
         (*letterData)->pos.x = xAdvance + pos.x + xOff * scale;
         (*letterData)->pos.y = pos.y + (l->height + yOff) * scale;        
         (*letterData)->texCoord = Vec2(l->x, l->y);
+        for (int i = 0; i < 3; ++i)
+        {
+            (*letterData)->view[i] = view.rows[i]; 
+        }
         ++(*letterData);
         
         (*letterData)->pos.x = xAdvance + pos.x + (l->width + xOff) * scale;
         (*letterData)->pos.y = pos.y + (l->height + yOff) * scale;
         (*letterData)->texCoord = Vec2(l->x + l->width, l->y);
+        for (int i = 0; i < 3; ++i)
+        {
+            (*letterData)->view[i] = view.rows[i]; 
+        }
         ++(*letterData);
         
         (*letterData)->pos.x = xAdvance + pos.x + (l->width + xOff) * scale;
         (*letterData)->pos.y = pos.y + yOff * scale;
         (*letterData)->texCoord = Vec2(l->x + l->width, l->y + l->height);
+        for (int i = 0; i < 3; ++i)
+        {
+            (*letterData)->view[i] = view.rows[i]; 
+        }
         ++(*letterData);
 
         xAdvance += l->xAdvance * scale;
@@ -365,6 +385,16 @@ void Renderer::submitText(const std::string& text, Vec2 pos, float scale)
     }
     
     GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));
+}
+
+void Renderer::submitText(const std::string& text, Vec2 pos, float scale)
+{
+    submitText(text, pos, Mat3::view(Vec2(), 0, 1, g_aspect), scale);
+}
+
+void Renderer::submitText(const std::string& text, Vec2 pos)
+{
+    submitText(text, pos, 0.2f);
 }
 
 void Renderer::setView(Mat3 view)
@@ -380,7 +410,7 @@ void Renderer::setFont(Font* font)
 void Renderer::flushSprites()
 {
 
-    for (unsigned int spriteBatchIndex = 0; spriteBatchIndex < spriteBatches.size(); ++spriteBatchIndex)
+    for (unsigned int spriteBatchIndex = 0; spriteBatchIndex < spriteBatches.size; ++spriteBatchIndex)
     {
         SpriteBatch* spriteBatch = &spriteBatches[spriteBatchIndex];
         spriteBatch->reference->bind();
@@ -394,7 +424,7 @@ void Renderer::flushSprites()
         SpriteData** spriteData = &spriteBatch->dataLayout;
 
         *spriteData = (SpriteData*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        for (unsigned int spriteIndex = 0; spriteIndex < spriteBatch->renderables.size(); ++spriteIndex)
+        for (unsigned int spriteIndex = 0; spriteIndex < spriteBatch->renderables.size; ++spriteIndex)
         {
             const SpriteRenderable* renderable = &spriteBatch->renderables[spriteIndex];
             const Sprite* sprite = renderable->sprite;
@@ -484,9 +514,9 @@ void Renderer::flush()
     
     letterBatch.batch.vao->bind();
     letterBatch.batch.ibo->bind();
-    font->_atlas->bind();
+    font->atlas->bind();
     letterShader->bind();    
-    letterShader->setUniformMat3("u_View", Mat3::view(Vec2(), 0, g_aspect));
+    //letterShader->setUniformMat3("u_View", Mat3::view(Vec2(), 0, 1, g_aspect));
     GLCALL(glDrawElements(GL_TRIANGLES, letterBatch.batch.numIndices, GL_UNSIGNED_INT, 0));
     letterBatch.batch.numVertices = 0;
     letterBatch.batch.numIndices = 0;

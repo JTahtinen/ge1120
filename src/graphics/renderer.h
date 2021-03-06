@@ -41,7 +41,9 @@ struct Renderer
     void submitQuad(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3, Vec2 position, Vec4 color);
     void submitQuad(Vec2 point0, Vec2 point1, Vec2 point2, Vec2 point3, Vec2 position, Vec4 color);
     void submitQuad(Quad quad, Vec2 position, Vec4 color);
-    void submitText(const std::string& text, Vec2 pos, float scale = 0.2f);
+    void submitText(const std::string& text, Vec2 pos, Mat3 view, float scale);
+    void submitText(const std::string& text, Vec2 pos, float scale);
+    void submitText(const std::string& text, Vec2 pos);
     void setView(Mat3 view);
     void setFont(Font* font);
     void flushSprites();
