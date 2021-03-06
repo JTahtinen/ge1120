@@ -15,16 +15,16 @@ struct Letter
 
 struct Font
 {
-    unsigned int _id;
-    Texture* _atlas;
-    std::string _filepath;
-    Vector<Letter> _letters;
-    float _base;
-public:
-    static Font* loadFont(std::string filepath);
+    unsigned int id;
+    Texture* atlas;
+    std::string filepath;
+    Vector<Letter> letters;
+    float base;
+    
+
     Letter* getLetter(char c);
-    ~Font();
-private:
-    Font();
-    static unsigned int nextId();
 };
+
+Font* loadFont(std::string filepath);
+void deleteFont(Font* font);
+unsigned int nextIDFont();

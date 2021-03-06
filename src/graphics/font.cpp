@@ -4,8 +4,9 @@
 #include "texture.h"
 #include <sstream>
 #include <string>
+#include "../globals.h"
 
-Font* Font::loadFont(std::string filepath)
+Font* loadFont(std::string filepath)
 {
     Texture* atlas = Texture::loadTexture(filepath + ".png");
     if (!atlas)
@@ -23,18 +24,23 @@ Font* Font::loadFont(std::string filepath)
     }
 
 
-    Font* font = new Font();
+    Font* font = (Font*)g_memory.reserve(sizeof(Font));
+    font->id = nextIDFont();
+    font->atlas = atlas;
+    font->filepath = filepath;
+    
     unsigned int texWidth = atlas->widthInPixels;
     unsigned int texHeight = atlas->heightInPixels;
 
     std::istringstream ss(fontFile);
     std::string line;
-    Vector<Letter>& letters = font->_letters;
+    Vector<Letter>& letters = font->letters;
+    letters.init(100);
     //letters.reserve(100);
     unsigned int i = 0;
     bool firstIdSkipped = false; // The font file contains "id:" that we want to skip
     bool baseFound = false;
-    float base = 0.0f;
+    
     while (ss >> line)
     {
         std::istringstream word(line);
@@ -42,7 +48,8 @@ Font* Font::loadFont(std::string filepath)
         if (!baseFound && line == "base")
         {
             getline(word, line);
-            base = stof(line) / (float)texHeight;
+            font->base = stof(line) / (float)texHeight;
+            
         }
         if (line == "id")
         {
@@ -93,39 +100,32 @@ Font* Font::loadFont(std::string filepath)
 		}
 		
     }
-    
-    font->_atlas = atlas;
-    font->_base = base;
-    font->_filepath = filepath;
-    
+        
     return font;
-}
-
-Font::Font()
-    :
-     _id(nextId())
-{
-}
-
-Font::~Font()
-{
-    _atlas->del();    
 }
 
 Letter* Font::getLetter(char c)
 {
-    for (unsigned int i = 0; i < _letters.size(); ++i)
+    for (unsigned int i = 0; i < letters.size; ++i)
     {
-        if (_letters[i].character == c)
+        if (letters[i].character == c)
         {
-            return &_letters[i];
+            return &letters[i];
         }
     }
     return nullptr;
 }
 
-unsigned int Font::nextId()
+unsigned int nextIDFont()
 {
     static unsigned int numIds = 0;
     return numIds++;
+}
+
+void deleteFont(Font* font)
+{
+    if (font)
+    {
+        font->atlas->del();
+    }
 }
