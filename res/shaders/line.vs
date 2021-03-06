@@ -14,9 +14,9 @@ uniform vec4 u_Color;
 
 void main()
 {
-    mat3 model = transpose(mat3(model0, model1, model2));
-    mat3 view = transpose(mat3(view0, view1, view2));
-    v_Color = u_Color;
+	mat3 model = transpose(mat3(model0, model1, model2));
+	mat3 view = transpose(mat3(view0, view1, view2));
+	v_Color = u_Color;
 	vec3 pos3 = view * model * vec3(position.xy, 1);
 	gl_Position = vec4(pos3.x, pos3.y, 0, 1);
 }
