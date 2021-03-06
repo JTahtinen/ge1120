@@ -21,9 +21,13 @@ Game::Game()
     //player->entity.rotation = 45.0f;
     camera.entity.pos = player->entity.pos;
     camera.entity.rotation = 0;
+    camera.zoom = 4.0f;
+    camera.zoomTarget = 1.0f;
     currentCamera = &camera;
     debugCamera.entity.pos = player->entity.pos;
     debugCamera.entity.rotation = 0;
+    debugCamera.zoom = 1.0f;
+    debugCamera.zoomTarget = 1.0f;
     for (int i = 0; i < 3; ++i)
     {
         spawnActor(Vec2(0.7f + i * 0.4f, 0));
@@ -135,11 +139,14 @@ void Game::update()
     {
         debugCamera.entity.pos.y -= playerFrameVel;
     }
-    if (g_input.isKeyTyped(KEY_Q))
+    if (g_input.mouseWheelDown)
     {
-        
+        increaseZoom(currentCamera);
     }
-
+    if (g_input.mouseWheelUp)
+    {
+        decreaseZoom(currentCamera);
+    }
     for (int i = 0; i < numActors; ++i)
     {
         Actor *e = actors[i];
@@ -149,6 +156,8 @@ void Game::update()
             e->entity.pos += newVel;
         }
     }
+
+    g_view = Mat3::scale(Vec2(1, g_aspect));
 
     Tile* currentPlayerTile = tileMap.getTileAtPos(player->entity.pos);    
 
@@ -165,6 +174,7 @@ void Game::update()
 
     camera.entity.pos = player->entity.pos + playerForward * 0.3f * g_frameTime;
     camera.entity.rotation = player->entity.rotation;
+    updateCamera(currentCamera);
     if (g_debugMode)
     {
         g_renderer->submitText("Player Pos: X - " + std::to_string(player->entity.pos.x) +
@@ -179,6 +189,7 @@ void Game::render()
 
     view = Mat3::view(Vec2() - currentCamera->entity.pos,
                       TO_RADIANS(-currentCamera->entity.rotation),
+                      1.0f / currentCamera->zoom,
                       g_aspect);  
 //    view = Mat3::rotation(TO_RADIANS(-currentCamera->entity.rotation)) * Mat3::translation(Vec2() - currentCamera->entity.pos);
     g_renderer->setView(view);
@@ -227,7 +238,8 @@ Mat3 screenToWorldProjection(Game* game)
     Camera* camera = game->currentCamera;
     Mat3 result = Mat3::translation(camera->entity.pos)
         * Mat3::rotation(TO_RADIANS(camera->entity.rotation))
-        * Mat3::scale(Vec2(1, 1.0f / g_aspect));
+        * Mat3::scale(Vec2(camera->zoom, camera->zoom / g_aspect));
+    //Mat3 result = Mat3::view(camera->entity.pos, TO_RADIANS(camera->entity.rotation), 1.0f / camera->zoom, 1.0f / g_aspect);
     return result;
 }
 
@@ -238,7 +250,7 @@ void getDataFromPos(Game* game, Vec2 pos, DataStrings* result)
     for (int i = 0; i < game->numActors; ++i)
     {
         Actor* actor = game->actors[i];
-        if (vec2IsBetween(pos, actor->entity.pos + entityQuad.point0, actor->entity.pos + entityQuad.point2))
+        if (vec2WithinRect(pos, actor->entity.pos + entityQuad.point0, actor->entity.pos + entityQuad.point2))
         {
             result->strings.push_back(actor->entity.name);
             result->strings.push_back(actor->sprite->texture->filepath);
