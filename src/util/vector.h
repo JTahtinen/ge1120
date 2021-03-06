@@ -1,23 +1,17 @@
 #pragma once
 #include "../globals.h"
-
+#include "../defs.h"
 template <typename T>
-class Vector
+struct Vector
 {
-    T *_data;
-    size_t _size;
-    size_t _capacity;
-
-public:
-    inline Vector(size_t capacity)
-        : _size(0)
-    {
-        reserve(capacity);
-    }
-
-    inline Vector(const Vector<T>& other)
+    T *data;
+    size_t size;
+    size_t capacity;
+/*
+    Vector(const Vector<T>& other)
         : _size(other._size)
         , _capacity(other._capacity)
+        , _data(NULL)
     {
         if (_capacity > 0)
         {
@@ -25,98 +19,117 @@ public:
             memcpy(_data, other._data, _size * sizeof(T));
         }
     }
+*/
     
-    inline Vector()
-        : Vector(50)
+    inline bool init(size_t cap)
     {
+
+        data = (T*)g_memory.reserve(sizeof(T) * cap);
+        if (!data)
+        {
+            err("Could not reserve memory for vector!\n");
+            return false;
+        }
+        capacity = cap;
+        size = 0;
+        return true;
     }
 
     inline ~Vector()
     {
-        g_memory.release(_data);
+        if (data)
+            g_memory.release(data);
     }
 
     inline void reserve(size_t amt)
     {
-        if (_size == 0)
-        {
-            _data = (T*)g_memory.reserve(sizeof(T) * amt);
-            _capacity = amt;
-        }
+        size = 0;
+        data = (T*)g_memory.reserve(sizeof(T) * amt);
+        capacity = amt;        
     }
 
     inline void double_capacity()
     {
-        if (_capacity > 0)
+        if (capacity > 0)
         {
-            _capacity *= 2;
-            T* newData = (T*)g_memory.reserve(sizeof(T) * _capacity);
-            memmove(newData, _data, sizeof(T) * _size);
-            g_memory.release(_data);
-            _data = newData;
+            capacity *= 2;
+            T* newData = (T*)g_memory.reserve(sizeof(T) * capacity);
+            if (size > 0)
+            {
+                memmove(newData, data, sizeof(T) * size);
+                g_memory.release(data);
+            }
+            data = newData;
         }
     }
 
     inline void push_back(T value)
     {
-        if (_size == _capacity)
+        if (capacity == 0)
+        {
+            reserve(10);
+        }
+        else if (size == capacity)
         {
             double_capacity();
         }
-        _data[_size++] = value;
+        data[size++] = value;
     }
 
     inline void pop_back()
     {
-        --_size;
+        if (size > 0)
+        {
+            --size;
+        }
     }
 
     inline void insert(T value, size_t index)
     {
-        if (index > _size)
+        if (index > size)
         {
             return;
         }
-        if (index == _size)
+        if (index == size)
         {
             push_back(unit);
             return;
         }
-        if (_size == _capacity)
+        if (size == capacity)
         {
             double_capacity();
         }
-            for (size_t i = _size + 1; i > index; --i)
-            {
-                _data[i] = _data[i - 1];
-            }
-        _data[index] = value;
-        ++_size;
+        for (size_t i = size + 1; i > index; --i)
+        {
+            data[i] = data[i - 1];
+        }
+        data[index] = value;
+        ++size;
     }
 
     inline void erase(size_t index, size_t amt)
     {
-        if (index == _size - 1 && amt == 1)
+        if (index == size - 1 && amt == 1)
         {
-            --_size;
+            --size;
             return;
         }
-        if (index < _size)
+        if (index < size)
         {
             size_t finalAmt;
-            if (index + amt - 1 < _size)
+            if (index + amt - 1 < size)
             {
                 finalAmt = amt;
             }
             else
             {
-                finalAmt = _size - index;
+                finalAmt = size - index;
             }
-            for (size_t i = index; i < _size - finalAmt; ++i)
+            for (size_t i = index; i < size - finalAmt; ++i)
             {
-                _data[i] = _data[i + finalAmt];
+                data[i] = data[i + finalAmt];
             }
-            _size -= finalAmt;
+            size -= finalAmt;
         }
     }
 
@@ -127,26 +140,23 @@ public:
 
     inline void clear()
     {
-        _size = 0;
+        size = 0;
     }
 
-    inline size_t size()
+    inline T& back()
     {
-        return _size;
-    }
-
-    inline size_t capacity()
-    {
-        return _capacity;
+        return data[size - 1];
     }
 
     inline const T& operator[](size_t index) const
     {
-        return _data[index];
+        ASSERT(index < size);
+        return data[index];
     }
 
     inline T& operator[](size_t index)
     {
-        return _data[index];
+        ASSERT(index < size);
+        return data[index];
     }
 };
