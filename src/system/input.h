@@ -84,6 +84,9 @@ struct Input
     bool mouseLeftReleased;
     bool mouseRightReleased;
 
+    bool mouseWheelUp;
+    bool mouseWheelDown;
+
     Input();
     void update();
     bool isKeyPressed(unsigned int key) const;

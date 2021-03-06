@@ -154,6 +154,8 @@ void Input::update()
     mouseLeftReleased = false;
     mouseRightClicked = false;
     mouseRightReleased = false;
+    mouseWheelUp = false;
+    mouseWheelDown = false;
     for (int i = 0; i < KEY_AMOUNT; ++i)
     {
         keysTyped[i] = false;
@@ -197,7 +199,7 @@ void Input::update()
                     mouseLeftHeld = true;
                     break;
                 }
-                else if (ev.button.button = SDL_BUTTON_LEFT)
+                else if (ev.button.button == SDL_BUTTON_RIGHT)
                 {
                     mouseRightClicked = true;
                     mouseRightHeld = true;
@@ -212,14 +214,26 @@ void Input::update()
                     mouseLeftReleased = true;
                     break;
                 }
-                else if (ev.button.button = SDL_BUTTON_LEFT)
+                else if (ev.button.button == SDL_BUTTON_RIGHT)
                 {
                     mouseRightHeld = false;
                     mouseRightReleased = true;
                     break;
                 }
-
             }
+            case SDL_MOUSEWHEEL:
+            {
+                if (ev.wheel.y < 0)
+                {
+                    mouseWheelDown = true;
+                }
+                else
+                {
+                    mouseWheelUp = true;
+                }
+                break;
+            }
+
         }
     }
 }
