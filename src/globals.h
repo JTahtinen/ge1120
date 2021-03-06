@@ -2,6 +2,8 @@
 #include "system/event.h"
 #include "system/input.h"
 #include "system/memory.h"
+#include "math/vec2.h"
+#include "math/mat3.h"
 
 struct Texture;
 struct Renderer;
@@ -52,6 +54,11 @@ extern float g_aspect;
 extern float g_frameTime;
 
 extern bool g_enableWireframe;
+
+extern Vec2 g_mousePosRaw;
+extern Vec2 g_mousePos;
+
+extern Mat3 g_view;
 
 extern bool initGlobals();
 extern void deleteGlobals();

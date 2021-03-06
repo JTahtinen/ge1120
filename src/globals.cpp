@@ -11,6 +11,11 @@ Memory g_memory;
 bool g_mouseState;
 bool g_debugMode = false;
 
+Vec2 g_mousePos;
+Vec2 g_mousePosRaw;
+
+Mat3 g_view;
+
 VertexArray *g_entityVAO;
 VertexArray *g_thingyVAO;
 Renderer *g_renderer;
@@ -152,7 +157,7 @@ bool initGlobals()
 
     g_redTex = Texture::loadTexture("res/textures/red.bmp");    
     g_greenTex = Texture::loadTexture("res/textures/green.bmp");;
-    g_arialFont = Font::loadFont("res/fonts/arial");
+    g_arialFont = loadFont("res/fonts/arial");
 
     
     g_wallTex = Texture::loadTexture("res/textures/walltile.bmp");;
