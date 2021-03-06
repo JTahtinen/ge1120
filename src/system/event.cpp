@@ -15,6 +15,7 @@ void EventContainer::update()
         case SDL_MOUSEBUTTONDOWN:
         case SDL_MOUSEBUTTONUP:
         case SDL_MOUSEMOTION:
+        case SDL_MOUSEWHEEL:
         {
             if (this->numInputEvents < MAX_EVENTS)
             {
