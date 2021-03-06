@@ -74,7 +74,7 @@ inline bool initSpriteBatch(SpriteBatch* target, const Texture* reference)
     }
     
     target->reference = reference;
-    target->renderables.reserve(300);
+    target->renderables.init(300);
 
     initBatch(&target->batch);
     target->batch.vao->bind();
