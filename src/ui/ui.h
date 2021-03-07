@@ -3,6 +3,7 @@
 #include <string>
 #include "../defs.h"
 #include "../graphics/font.h"
+#include "../math/vec4.h"
 
 struct Button
 {
@@ -18,16 +19,20 @@ struct UI
     Vector<Button> buttons;
     Vec2 screenPos;
     unsigned int nextID;
+    bool drag;
+    Vec2 dragPoint;
+    Vec4* currentHeaderColor;
+    bool inFocus;
+    Vec2 dimensions;
 };
 
 unsigned int createButton(const std::string& string, UI* ui);
 bool doButton(unsigned int buttonID, UI* ui);
 bool initUI(const std::string& title, UI* ui);
-//UI* createUI(const std::string& title);
 void updateUI(UI* ui);
 void drawUI(UI* ui);
 
-inline float calculateStringWidth(std::string text, Font* font, float scale = 0.2f)
+inline float calculateStringWidth(const std::string& text, Font* font, float scale = 0.2f)
 {
     if (!font)
     {

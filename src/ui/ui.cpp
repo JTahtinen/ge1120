@@ -9,7 +9,7 @@ static Vec4 buttonHotColor(0.7f, 0.8f, 0.2f, 1.0f);
 static Vec4 buttonActiveColor(1, 1, 1, 1);
 static Vec4 headerIdleColor(0.5f, 0, 0, 0.5f);
 static Vec4 headerHotColor(1.0f, 0, 0, 0.5f);
-static Vec4* currentHeaderColor;
+static Vec4 backgroundColor(0, 0, 0, 0.5f);
 static float backgroundW = 0.25f;
 static float buttonH = 0.04f;
 static float headerH = 0.06f;
@@ -24,6 +24,10 @@ unsigned int createButton(const std::string& text, UI* ui)
     button->text = std::string(text);
     button->hot = false;
     button->active = false;
+    unsigned int numButtons = ui->buttons.size;
+    ui->dimensions.y += buttonH + buttonYMargin * 2;
+
+    
     return button->id;
 }
 
@@ -108,62 +112,63 @@ static void updateButton(Button* button, UI* ui)
 
 bool initUI(const std::string& title, UI* ui)
 {
-    //ui->buttons = Vector<Button>();
     ui->buttons.init(10);
     ui->title = std::string(title);
     ui->screenPos = Vec2(-0.3f, 0.3f);
     ui->nextID = 0;
-    currentHeaderColor = &headerIdleColor;
+    ui->drag = false;
+    ui->currentHeaderColor = &headerIdleColor;
+    ui->inFocus = false;
+    ui->dimensions = Vec2(backgroundW, headerH);
     return true;
 }
-/*
-UI* createUI(const std::string& title)
-{
-    UI* result = (UI*)g_memory.reserve(sizeof(UI));
-    result->title = std::string(title);
-    result->screenPos = Vec2(-0.3f, 0.3f);
-    result->nextID = 0;
-    currentHeaderColor = &headerIdleColor;
-    return result;
-}
-*/
+
 void updateUI(UI* ui)
 {
+   
     if (g_mouseState)
     {
-        static bool drag = false;
-        static Vec2 dragPoint;
-        if (vec2WithinRect(g_mousePos, ui->screenPos + Vec2(backgroundW, -headerH), ui->screenPos))
+         
+        if (vec2WithinRect(g_mousePos, ui->screenPos + Vec2(ui->dimensions.x, -headerH),
+                           ui->screenPos))
         {
-            currentHeaderColor = &headerHotColor;
+            ui->currentHeaderColor = &headerHotColor;
             if (g_input.mouseLeftClicked)
             {
-                drag = true;
-                dragPoint = g_mousePos - ui->screenPos;
+                ui->drag = true;
+                ui->dragPoint = g_mousePos - ui->screenPos;
             }
         }
-        else if (!drag)
+        else if (!ui->drag)
         {
-            currentHeaderColor = &headerIdleColor;
+            ui->currentHeaderColor = &headerIdleColor;
         }
 
-        if (g_input.mouseLeftReleased)
+        ui->inFocus = vec2WithinRect(g_mousePos,
+                                     ui->screenPos + Vec2(ui->dimensions.x, -ui->dimensions.y),
+                                     ui->screenPos);
+        
+        if (ui->drag && g_input.mouseLeftReleased)
         {
-            drag = false;
+            ui->drag = false;
         }
 
-        if (drag)
+        if (ui->drag)
         {
-            ui->screenPos = g_mousePos - dragPoint;
+            ui->screenPos = g_mousePos - ui->dragPoint;
         }
-    } 
+            
+    }                
+            
+             
     for (unsigned int i = 0; i < ui->buttons.size; ++i)
     {
         Button* button = &ui->buttons[i];
         updateButton(button, ui);
     } 
+            
 }
-
+    
 void drawUI(UI* ui)
 {
     g_renderer->setView(g_view);
@@ -179,22 +184,24 @@ void drawUI(UI* ui)
                            backgroundW, 0);
 
     float currentRelativePos = 0;
-
+    float backgroundH = ui->dimensions.y - headerH;
     unsigned int numButtons = ui->buttons.size;
-    float backgroundH = numButtons * buttonH + numButtons * (buttonYMargin * 2) - buttonYMargin;
-    Quad background(0, 0, 0, -backgroundH, backgroundW, -backgroundH, backgroundW, 0);
-    g_renderer->submitQuad(headerQuad,
+    Quad background(0, 0,
+                    0, -backgroundH,
+                    ui->dimensions.x, -backgroundH,
+                    ui->dimensions.x, 0);
+    g_uiRenderer->submitQuad(headerQuad,
                            ui->screenPos + Vec2(0, currentRelativePos),
-                           *currentHeaderColor);
+                           *ui->currentHeaderColor);
     float titleWidth = calculateStringWidth(ui->title, g_arialFont);
     float titlePos = (backgroundW * 0.5f) - (titleWidth * 0.5f);
-    g_renderer->submitText(ui->title,
+    g_uiRenderer->submitText(ui->title,
                            ui->screenPos + Vec2(titlePos, - headerH + headerH * 0.3f)
                            , 0.2f);
     currentRelativePos += (-headerH);
-    g_renderer->submitQuad(background,
+    g_uiRenderer->submitQuad(background,
                            ui->screenPos + Vec2(0, currentRelativePos),
-                           Vec4(0, 0, 0, 0.5f));
+                           backgroundColor);
 
     for (unsigned int i = 0; i < numButtons; ++i)
     {
@@ -213,11 +220,10 @@ void drawUI(UI* ui)
             buttonColor = &buttonIdleColor;
         }
         Vec2 pos = getButtonScreenPos(button->id, ui);
-        g_renderer->submitQuad(buttonQuad, pos, *buttonColor);
+        g_uiRenderer->submitQuad(buttonQuad, pos, *buttonColor);
         if (button->text.size() > 0)
         {
-            g_renderer->submitText(button->text, pos + Vec2(.01f, -buttonH + buttonH * 0.2f), 0.2f);
+            g_uiRenderer->submitText(button->text, pos + Vec2(.01f, -buttonH + buttonH * 0.2f), 0.2f);
         }
     }
 }
-
