@@ -4,7 +4,7 @@
 #include "graphics/vertexarray.h"
 #include "graphics/renderer.h"
 #include "graphics/font.h"
-#include "game/tilemap.h"
+#include "game/tile.h"
 
 Memory g_memory;
 
@@ -13,12 +13,14 @@ bool g_debugMode = false;
 
 Vec2 g_mousePos;
 Vec2 g_mousePosRaw;
+Vec2 g_projectedMousePos;
 
 Mat3 g_view;
 
 VertexArray *g_entityVAO;
 VertexArray *g_thingyVAO;
 Renderer *g_renderer;
+Renderer *g_uiRenderer;
 Texture *g_entityTexture;
 Texture *g_thingyTexture;
 Texture *g_redTex;
@@ -45,6 +47,8 @@ Shader*      g_basicShader;
 Shader*      g_lineShader;
 Shader*      g_quadShader;
 Shader*      g_letterShader;
+
+char* stringBuffer;
 
 Font*        g_arialFont;
 
@@ -104,14 +108,12 @@ static void initBuffers()
 bool initGlobals()
 {
     g_frameTime = 0;
-    g_memory.init(MB(1));
-
     g_mouseState = false;
     
     INIT(g_entityVAO, VertexArray, );
     INIT(g_thingyVAO, VertexArray, );
     INIT(g_renderer, Renderer, );
-
+    INIT(g_uiRenderer, Renderer, );
     g_boundShaderID = 0;
     g_boundVAOID = 0;
     g_boundVBOID = 0;
@@ -171,7 +173,11 @@ bool initGlobals()
     g_renderer->letterShader = g_letterShader;
     g_renderer->setFont(g_arialFont);
 
-
+    g_uiRenderer->shader = g_basicShader;
+    g_uiRenderer->lineShader = g_lineShader;
+    g_uiRenderer->quadShader = g_quadShader;
+    g_uiRenderer->letterShader = g_letterShader;
+    g_uiRenderer->setFont(g_arialFont);
 
     g_voidTile = (Tile*)g_memory.reserve(sizeof(Tile));
     g_thingyTile = (Tile*)g_memory.reserve(sizeof(Tile));
