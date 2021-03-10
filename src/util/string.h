@@ -1,113 +1,336 @@
 #pragma once
 #include "../globals.h"
+#include "../defs.h"
+#include <memory.h>
 
-class String
+inline size_t getStringSize(const char* text)
 {
-    char* _content;
-    size_t _size;
-    size_t _capacity;
-    static char*[5000]
-
-public:
-    inline String(const char* content)
+    size_t stringIndex = 0;
+    while (text[stringIndex] != 0)
     {
-        int i = 0;
-        for (; content[i] != 0; ++i){}
-        if (i > 0)
+        ++stringIndex;
+    }
+    return stringIndex;
+}
+
+struct String
+{
+    char* content {NULL};
+    size_t size {0};
+    size_t capacity {0};
+
+    inline String()
+    {
+    }
+
+    inline String(char* content, size_t size, size_t capacity)
+        : content(content)
+        , size(size)
+        , capacity(capacity)
+    {
+        if (content)
         {
-            _capacity = i;
-            _size = i;
-            _content = (char*)g_memory.reserve(sizeof(char) * _capacity);
-            for (i = 0; i < _size; ;++i)
+            content[size] = '\0';
+        }          
+    }
+    
+    inline String(const char* text)
+    {
+        size_t stringSize = getStringSize(text);
+
+        if (stringSize == 0)
+        {
+            init(20);
+        }
+        else
+        {
+            init(stringSize);
+            size = stringSize;
+            for (size_t i = 0; i < size; ++i)
             {
-                _content[i] = content[i];
+                content[i] = text[i];
             }
+        }
+    }
+
+    inline String(const String& other)
+    {
+        if (other.size > 0)
+        {
+            size = other.size;
+            capacity = other.capacity;
+            content = (char*)g_memory.reserve(sizeof(char) * (other.capacity + 1));
+
+            memcpy(content, other.content, sizeof(char) * (size + 1));
         }
         else
         {
             init(20);
         }
     }
-    
-    inline String()
-        : _capacity(0)
-        , _size(0)
-        , _content(NULL)
-    {
-        init(20);
-    }
 
-    inline String(size_t cap)
+
+    
+    inline static String create(const char* text)
     {
-        init(cap);
+        size_t stringSize = getStringSize(text);
+
+        if (stringSize == 0) return String();
+
+        char* newContent = NULL;
+        size_t newCapacity = stringSize;
+        size_t newSize = stringSize;
+              
+        if (newCapacity > 0)
+        {
+            newContent = (char*)g_memory.reserve(sizeof(char) * (newCapacity + 1));
+            for (size_t i = 0; i < newSize; ++i)
+            {
+                newContent[i] = text[i];
+            }
+            newContent[newSize] = '\0';
+        }
+        return String(newContent, newSize, newCapacity);
     }
 
     inline ~String()
     {
-        if (_capacity > 0)
+        //static int numDeallocs = 0;
+        //numDeallocs++;
+        //       message("String deallocation %d\n", numDeallocs); 
+        if (content)
         {
-            g_memory.release(_content);
+            g_memory.release(content);
         }
     }
 
     inline void init(size_t cap)
     {
         release();
-        _capacity = cap;
-        _content = (char*)g_memory.reserve(sizeof(char) * _capacity);
+        capacity = cap;
+        content = (char*)g_memory.reserve(sizeof(char) * (capacity + 1));
+        content[capacity] = '\0';
     }
 
     inline void release()
     {
-        if (_capacity > 0)
+        if (content)
         {
-            g_memory.release(_content);
-            _content = NULL;
-            _capacity = 0;
-            _size = 0;
+            g_memory.release(content);
+            content = NULL;
+            capacity = 0;
+            size = 0;
         }
     }
 
-    inline size_t size() const
+    inline String& append(const char* text)
     {
-        return _size;
-    }
-
-    inline size_t capacity() const
-    {
-        return _capacity;
-    }
-
-    String& append(const String& other)
-    {
-        if (other.size == 0) return;
-        size_t newSize = _size + other._size;
-        if (_capacity < newSize)
+        size_t appendSize = getStringSize(text);
+        if (appendSize == 0) return *this;
+        size_t newSize = size + appendSize;
+        if (capacity < newSize)
         {
             char* newContent = (char*)g_memory.reserve(sizeof(char) * newSize);
-            for (size_t i = 0; i < _size; ++i)
+            for (size_t i = 0; i < size; ++i)
             {
-                newContent[i] = _content[i];
+                newContent[i] = content[i];
             }
-            _content = newContent;
-            _capacity = newSize;
+            g_memory.release(content);
+            content = newContent;
+            capacity = newSize;
         }
-        for (size_t i = 0; i < other._size; ++i)
+        for (size_t i = 0; i < appendSize; ++i)
         {
-            _content[_size + i] = other._content[i]
+            content[size + i] = text[i];
         }
-        _size = newSize;
-        return this;
+        content[newSize] = '\0';
+        size = newSize;
+        return *this;
     }
 
-    inline String operator=(const char* content)
+    inline String& append(const String& other)
     {
-        return String(content);
+        return append(other.content);
     }
 
-    inline String operator+(const char* content)
+    char* c_str() const
     {
-        //TODO: Stuff
-        return String();
+        return content;
     }
+
+    inline void print() const
+    {
+        if (content)
+        {
+            message("%s", c_str());
+        }        
+    }
+
+    inline void println() const
+    {
+        if (content)
+        {
+            message("%s\n", c_str());
+        }
+    }
+
+    inline String& operator=(const char* text)
+    {
+        size_t stringSize = getStringSize(text);;
+
+        char* newContent = NULL;
+        size_t newCapacity = stringSize;
+        size_t newSize = stringSize;
+              
+        if (newCapacity > 0)
+        {
+            newContent = (char*)g_memory.reserve(sizeof(char) * (newCapacity + 1));
+            for (size_t i = 0; i < newSize; ++i)
+            {
+                newContent[i] = text[i];
+            }
+            newContent[newSize] = '\0';
+        }
+        if (content)
+        {
+            g_memory.release(content);
+        }
+        content = newContent;
+        size = newSize;
+        capacity = newCapacity;
+        return *this;
+    }
+
+    inline String& operator=(const String& other)
+    {
+        if (other.size > 0)
+        {
+            size = other.size;
+            capacity = other.capacity;
+            content = (char*)g_memory.reserve(sizeof(char) * (other.capacity + 1));
+
+            memcpy(content, other.content, sizeof(char) * (size + 1));
+        }
+        else
+        {
+            init(20);
+        }
+        return *this;
+
+    }
+
+    inline bool operator==(const String& other) const
+    {
+        if (size != other.size) return false;
+        for (size_t i = 0; i < size; ++i)
+        {
+            if (content[i] != other.content[i]) return false;
+        }
+        return true;
+    }
+
+    inline bool operator!=(const String& other) const
+    {
+        bool result = !(*this == other);
+        return result;
+    }
+
+    inline String operator+(const char* text) const
+    {
+        size_t appendSize = getStringSize(text);
+        if (size == 0 && appendSize == 0) return {NULL, 0, 0};
+        if (appendSize == 0) return String::create(content);
+        if (size == 0) return String::create(text);
+        size_t newSize = size + appendSize;
+        char* newContent = (char*)g_memory.reserve(sizeof(char) * (newSize + 1));
+        size_t newCapacity = newSize;
+
+        size_t i;
+        for (i = 0; i < size; ++i)
+        {
+            newContent[i] = content[i];
+        }
+        for (i = 0; i < appendSize; ++i)
+        {
+            newContent[size + i] = text[i];
+        }
+
+        return String(newContent, newSize, newCapacity);
+    }
+
+/*    inline String operator+(const String& other) const
+    {
+        return *this + other.content;
+    }
+*/
+    inline String& operator+=(const char* text)
+    {
+        return append(text);
+    }
+    
+    inline char operator[](size_t index) const
+    {
+        return content[index];
+    }
+
+    inline char& operator[](size_t index)
+    {
+        return content[index];
+    }
+
 };
+
+inline String operator+(const String& left, const String& right)
+{
+    if (left.size + right.size < 1) return String();
+
+    size_t size = left.size + right.size;
+    char* content = (char*)g_memory.reserve(sizeof(char) * (size + 1));
+    size_t capacity = size;
+    size_t i;
+    for (i = 0; i < left.size; ++i)
+    {
+        content[i] = left[i];
+    }
+    for (i = 0; i < right.size; ++i)
+    {
+        content[left.size + i] = right[i];
+    }
+    content[size] = '\0';
+    
+    return String(content, size, capacity);
+}
+
+
+inline String toString(int val)
+{  
+    sprintf(stringBuffer, "%d", val);
+    //message("%s\n", stringBuffer);
+    return String(stringBuffer);
+}
+
+inline String toString(unsigned int val)
+{  
+    sprintf(stringBuffer, "%d", val);
+    //message("%s\n", stringBuffer);
+    return String(stringBuffer);
+}
+
+inline String toString(float val)
+{
+    sprintf(stringBuffer, "%f", val);
+    //message("%s\n", stringBuffer);
+    return String(stringBuffer);
+}  
+
+inline String toString(double val)
+{
+    sprintf(stringBuffer, "%f", val);
+    //message("%s\n", stringBuffer);
+    return String(stringBuffer);
+}
+
+inline String toString(size_t val)
+{
+    return toString((unsigned int)val);
+}
