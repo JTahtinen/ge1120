@@ -1,12 +1,11 @@
 #include "memory.h"
 #include <memory>
-#include <iostream>
 #include "../globals.h"
 #include "../math/math.h"
 #include "../graphics/renderer.h"
 #include "../defs.h"
-#include <string>
-
+//#include <string>
+#include "../util/string.h"
 Memory::Memory()
     : allocation(nullptr), allocationSize(0), numReservedMemoryIndices(0), availableMemory(0)
 {
@@ -45,12 +44,12 @@ void *Memory::reserve(size_t size)
     }
     if (availableMemory < size)
     {
-        std::cout << "[ERROR] Could not assign memory - Not enough space!" << std::endl;
+        err("Could not assign memory - Not enough space!\n");
         return NULL;
     }
     if (numReservedMemoryIndices >= MAX_MEMORY_INDICES)
     {
-        std::cout << "[ERROR] Could not assign memory - Too many allocation instances!" << std::endl;
+        err("Could not assign memory - Too many allocation instances!\n");
         return NULL;
     }
     size_t i = 0;
@@ -58,7 +57,7 @@ void *Memory::reserve(size_t size)
     size_t endIndex = reservedMemoryIndices[i + 1];
     if (startIndex + size > allocationSize)
     {
-        std::cout << "[ERROR] Could not assign memory - Allocation limit reached!" << std::endl;
+        err("Could not assign memory - Allocation limit reached!\n");
         return NULL;
     }
     bool blockFound = false;
@@ -73,7 +72,7 @@ void *Memory::reserve(size_t size)
         {
             if (i + 1 == numReservedMemoryIndices)
             {
-                std::cout << "[ERROR] Could not reserve memory - no contiguous blocks of appropriate size!" << std::endl;
+                err("Could not reserve memory - no contiguous blocks of appropriate size!\n");
                 return NULL;
             }
             i += 2;
@@ -129,7 +128,7 @@ bool Memory::release(void *address)
     bool blockReleased = false;
     if (reservedMemoryInfo.find(address) == reservedMemoryInfo.end())
     {
-        std::cout << "[ERROR] Could not release memory by address: " << address << " - Block not found!" << std::endl;
+        err("Could not release memory by address: %d - Block not found!\n", address);
         return false;
     }
     MemoryBlockInfo block = reservedMemoryInfo[address];
@@ -238,29 +237,31 @@ bool Memory::release(void *address)
 
 void Memory::printState()
 {
-    std::cout << "Total Allocation: " << allocationSize << " - Available memory: " << availableMemory << " - Num reserved blocks: " << reservedMemoryInfo.size() << std::endl;
-    std::cout << "Memory block handles" << std::endl
-              << "-------------" << std::endl;
-    for (std::map<void*, MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin(); it != reservedMemoryInfo.end(); ++it)
+    message("Total Allocation: %s - AvailableMemory %s - Num reserved blocks\n",
+            allocationSize, availableMemory, reservedMemoryInfo.size());
+    message("Memory block handles\n-------------\n");
+    for (std::map<void*, MemoryBlockInfo>::iterator it = reservedMemoryInfo.begin();
+         it != reservedMemoryInfo.end();
+         ++it)
     {
-        std::cout << it->first << std::endl;
+        message("%s\n", it->first);
     }
-    std::cout << "Memory Indices(" << numReservedMemoryIndices << ")" << std::endl
-              << "-------------" << std::endl;
+    message("Memory Indices(%s)\n-------------\n", numReservedMemoryIndices);
     for (size_t i = 0; i < numReservedMemoryIndices; ++i)
     {
-        std::cout << reservedMemoryIndices[i] << std::endl;
+        message("%s\n", reservedMemoryIndices[i]);
+        
     }
-    std::cout << std::endl;
+    message("\n");
 }
 
 void Memory::visualize()
 {
     g_renderer->submitText("MEMORY", Vec2(-0.9f, 0.34f));
-    g_renderer->submitText("Num allocations: " + std::to_string(reservedMemoryInfo.size()), Vec2(-0.9f, 0.27f));
-    g_renderer->submitText("Total Bytes: " + std::to_string(allocationSize), Vec2(-0.9f, 0.24f));
-    g_renderer->submitText("Reserved Bytes: " + std::to_string(allocationSize - availableMemory), Vec2(-0.9f, 0.21f));
-    g_renderer->submitText("Available Bytes: " + std::to_string(availableMemory), Vec2(-0.9f, 0.18f));
+    g_renderer->submitText(String("Num allocations: " + toString(reservedMemoryInfo.size())), Vec2(-0.9f, 0.27f));
+    g_renderer->submitText("Total Bytes: " + toString(allocationSize), Vec2(-0.9f, 0.24f));
+    g_renderer->submitText("Reserved Bytes: " + toString(allocationSize - availableMemory), Vec2(-0.9f, 0.21f));
+    g_renderer->submitText("Available Bytes: " + toString(availableMemory), Vec2(-0.9f, 0.18f));
     static Mat3 view = Mat3::view(Vec2(), 0, 1, g_aspect);
     g_renderer->setView(view);
     static Vec2 barDim(0.4f, 0.03f);

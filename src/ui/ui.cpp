@@ -16,16 +16,16 @@ static float headerH = 0.06f;
 static float buttonXMargin = 0.01f;
 static float buttonYMargin = 0.01f;
     
-unsigned int createButton(const std::string& text, UI* ui)
+unsigned int createButton(const String& text, UI* ui)
 {
     ui->buttons.push_back({});
     Button* button = &ui->buttons.back();
     button->id = ui->nextID++;
-    button->text = std::string(text);
+    button->text = text;
     button->hot = false;
     button->active = false;
     unsigned int numButtons = ui->buttons.size;
-    ui->dimensions.y += buttonH + buttonYMargin * 2;
+    ui->dimensions.y += buttonH + buttonYMargin;
 
     
     return button->id;
@@ -110,16 +110,16 @@ static void updateButton(Button* button, UI* ui)
     }
 }
 
-bool initUI(const std::string& title, UI* ui)
+bool initUI(const String& title, UI* ui)
 {
     ui->buttons.init(10);
-    ui->title = std::string(title);
+    ui->title = title;
     ui->screenPos = Vec2(-0.3f, 0.3f);
     ui->nextID = 0;
     ui->drag = false;
     ui->currentHeaderColor = &headerIdleColor;
     ui->inFocus = false;
-    ui->dimensions = Vec2(backgroundW, headerH);
+    ui->dimensions = Vec2(backgroundW, headerH + buttonYMargin);
     return true;
 }
 
@@ -171,7 +171,7 @@ void updateUI(UI* ui)
     
 void drawUI(UI* ui)
 {
-    g_renderer->setView(g_view);
+//    g_uiRenderer->setView(g_view);
 
     static Quad buttonQuad(0, 0,
                            0, 0 - buttonH,
@@ -191,7 +191,7 @@ void drawUI(UI* ui)
                     ui->dimensions.x, -backgroundH,
                     ui->dimensions.x, 0);
     g_uiRenderer->submitQuad(headerQuad,
-                           ui->screenPos + Vec2(0, currentRelativePos),
+                             ui->screenPos + Vec2(0, currentRelativePos),
                            *ui->currentHeaderColor);
     float titleWidth = calculateStringWidth(ui->title, g_arialFont);
     float titlePos = (backgroundW * 0.5f) - (titleWidth * 0.5f);
@@ -200,7 +200,7 @@ void drawUI(UI* ui)
                            , 0.2f);
     currentRelativePos += (-headerH);
     g_uiRenderer->submitQuad(background,
-                           ui->screenPos + Vec2(0, currentRelativePos),
+                             ui->screenPos + Vec2(0, currentRelativePos),
                            backgroundColor);
 
     for (unsigned int i = 0; i < numButtons; ++i)
@@ -221,7 +221,7 @@ void drawUI(UI* ui)
         }
         Vec2 pos = getButtonScreenPos(button->id, ui);
         g_uiRenderer->submitQuad(buttonQuad, pos, *buttonColor);
-        if (button->text.size() > 0)
+        if (button->text.size > 0)
         {
             g_uiRenderer->submitText(button->text, pos + Vec2(.01f, -buttonH + buttonH * 0.2f), 0.2f);
         }

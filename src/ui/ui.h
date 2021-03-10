@@ -1,6 +1,6 @@
 #pragma once
 #include "../util/vector.h"
-#include <string>
+#include "../util/string.h"
 #include "../defs.h"
 #include "../graphics/font.h"
 #include "../math/vec4.h"
@@ -8,14 +8,14 @@
 struct Button
 {
     unsigned int id;
-    std::string text;
+    String text;
     bool hot;
     bool active;
 };
 
 struct UI
 {
-    std::string title;
+    String title;
     Vector<Button> buttons;
     Vec2 screenPos;
     unsigned int nextID;
@@ -26,13 +26,13 @@ struct UI
     Vec2 dimensions;
 };
 
-unsigned int createButton(const std::string& string, UI* ui);
+unsigned int createButton(const String& string, UI* ui);
 bool doButton(unsigned int buttonID, UI* ui);
-bool initUI(const std::string& title, UI* ui);
+bool initUI(const String& title, UI* ui);
 void updateUI(UI* ui);
 void drawUI(UI* ui);
 
-inline float calculateStringWidth(const std::string& text, Font* font, float scale = 0.2f)
+inline float calculateStringWidth(String& text, Font* font, float scale = 0.2f)
 {
     if (!font)
     {
@@ -40,8 +40,9 @@ inline float calculateStringWidth(const std::string& text, Font* font, float sca
         return 0;
     }
     float result = 0;
-    for (unsigned int i = 0; i < text.size(); ++i)
+    for (unsigned int i = 0; i < text.size; ++i)
     {
+        if (!text[i]) break;
         Letter* c = font->getLetter(text[i]);
         result += c->xAdvance * scale;
     }
