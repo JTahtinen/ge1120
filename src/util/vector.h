@@ -1,12 +1,13 @@
 #pragma once
 #include "../globals.h"
 #include "../defs.h"
+
 template <typename T>
 struct Vector
 {
-    T *data;
-    size_t size;
-    size_t capacity;
+    T *data {NULL};
+    size_t size{0};
+    size_t capacity{0};
 /*
     Vector(const Vector<T>& other)
         : _size(other._size)
@@ -20,7 +21,14 @@ struct Vector
         }
     }
 */
-    
+/*    Vector()
+        : data(NULL)
+        , size(0)
+        , capacity(0)
+    {
+        init(10);
+    }
+*/  
     inline bool init(size_t cap)
     {
 
@@ -38,7 +46,10 @@ struct Vector
     inline ~Vector()
     {
         if (data)
+        {
+            message("Releasing memory\n");
             g_memory.release(data);
+        }
     }
 
     inline void reserve(size_t amt)
