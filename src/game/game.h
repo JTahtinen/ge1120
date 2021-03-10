@@ -4,13 +4,12 @@
 #include "tilemap.h"
 #include "../math/mat3.h"
 #include "../util/vector.h"
-#include <string>
-#include <vector>
+#include "../util/string.h"
 
 #define MAX_GAME_ENTITIES (100)
 struct DataStrings
 {
-    std::vector<std::string> strings;
+    Vector<String> strings;
 };
 
 struct Game
@@ -25,7 +24,7 @@ struct Game
     Camera* currentCamera;
 
 
-    Game();
+    void init();
     ~Game();
     void update();
     void render();

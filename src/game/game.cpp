@@ -6,19 +6,18 @@
 #include "../math/mat3.h"
 #include "../math/math.h"
 #include "../graphics/renderer.h"
+#include "../util/string.h"
 
 static float speed;
 static float accSpeed;
 
-
-Game::Game()
-    : numActors(0)
+void Game::init()
 {
+    numActors = 0;
     speed = 1.0f;
     accSpeed = speed * 2;
     player = spawnActor(Vec2(3.0f, 3.25f));
     player->entity.name = "Player";
-    //player->entity.rotation = 45.0f;
     camera.entity.pos = player->entity.pos;
     camera.entity.rotation = 0;
     camera.zoom = 4.0f;
@@ -33,23 +32,19 @@ Game::Game()
         spawnActor(Vec2(0.7f + i * 0.4f, 0));
     }
     if (tileMap.init(50, 40))
-    {
+    {       
         for (int y = 0; y < tileMap.height; ++y)
         {
             for (int x = 0; x < tileMap.width; ++x)
             {
-                if (y % 5 == 0 && x % 8 == 0)
-                {
-                    tileMap.setTile(x, y, g_wallTile);
-                }
-                else
-                {
-                    tileMap.setTile(x, y, g_thingyTile);
-                }
+                tileMap.setTile(x, y, g_thingyTile); 
             }
         }
     }
+
 }
+
+
 Game::~Game()
 {
 }
@@ -65,7 +60,7 @@ Actor *Game::spawnActor(Vec2 pos)
     Actor *e = &actorPool[numActors];
     static unsigned int currentActorID = 0;
     e->entity.id = currentActorID++;
-    e->entity.name = "Thingy " + std::to_string(e->entity.id);
+    e->entity.name = "Thingy " + toString(e->entity.id);
     e->entity.pos = pos;
     e->entity.rotation = 0.0f;
     e->sprite = &entitySprite;
@@ -157,11 +152,8 @@ void Game::update()
         }
     }
 
-    g_view = Mat3::scale(Vec2(1, g_aspect));
-
     Tile* currentPlayerTile = tileMap.getTileAtPos(player->entity.pos);    
 
-    //player->entity.rotation += 0.05f;
     while (player->entity.rotation > 360.0f)
     {
         player->entity.rotation -= 360.0f;
@@ -177,8 +169,8 @@ void Game::update()
     updateCamera(currentCamera);
     if (g_debugMode)
     {
-        g_renderer->submitText("Player Pos: X - " + std::to_string(player->entity.pos.x) +
-                               ", Y - " + std::to_string(player->entity.pos.y), Vec2(-0.1f, -0.3f));
+        g_renderer->submitText("Player Pos: X - " + toString(player->entity.pos.x) +
+                               ", Y - " + toString(player->entity.pos.y), Vec2(-0.1f, -0.3f));
     }                      
 
 }
@@ -191,7 +183,6 @@ void Game::render()
                       TO_RADIANS(-currentCamera->entity.rotation),
                       1.0f / currentCamera->zoom,
                       g_aspect);  
-//    view = Mat3::rotation(TO_RADIANS(-currentCamera->entity.rotation)) * Mat3::translation(Vec2() - currentCamera->entity.pos);
     g_renderer->setView(view);
     tileMap.draw(&camera, view);
     for (int i = 0; i < numActors; ++i)
@@ -219,16 +210,6 @@ void Game::render()
 
 void Game::drawActor(Actor *e) const
 {
-    /*
-    if (g_enableWireframe)
-    {
-        g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID_AND_WIREFRAME);
-
-    }
-    else
-    {
-    g_renderer->renderVAO(e->vao, e->texture, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view, RENDER_SOLID);
-    }*/
     g_renderer->submitSprite(e->sprite, Mat3::translation(e->entity.pos) * Mat3::rotation(TO_RADIANS(e->entity.rotation)), view);
 }
 
@@ -239,7 +220,6 @@ Mat3 screenToWorldProjection(Game* game)
     Mat3 result = Mat3::translation(camera->entity.pos)
         * Mat3::rotation(TO_RADIANS(camera->entity.rotation))
         * Mat3::scale(Vec2(camera->zoom, camera->zoom / g_aspect));
-    //Mat3 result = Mat3::view(camera->entity.pos, TO_RADIANS(camera->entity.rotation), 1.0f / camera->zoom, 1.0f / g_aspect);
     return result;
 }
 
@@ -253,24 +233,27 @@ void getDataFromPos(Game* game, Vec2 pos, DataStrings* result)
         if (vec2WithinRect(pos, actor->entity.pos + entityQuad.point0, actor->entity.pos + entityQuad.point2))
         {
             result->strings.push_back(actor->entity.name);
-            result->strings.push_back(actor->sprite->texture->filepath);
+            result->strings.push_back(actor->sprite->texture->filepath.c_str());
             return; 
         }
                            
     }
     const Tile* tile = game->tileMap.getTileAtPos(pos);
     iPoint tileIndex = game->tileMap.getTileIndexAt(pos);
-    result->strings.push_back("Tile index: X(" + std::to_string(tileIndex.x) + ") Y("  +
-                              std::to_string(tileIndex.y) + ")");
-    if (!tile)
+    
+    if (!tile
+        || tileIndex.x < 0 || tileIndex.x >= game->tileMap.width
+        || tileIndex.y < 0 || tileIndex.y >= game->tileMap.height)
     {
         result->strings.push_back("No data");
         return;
     }
+    result->strings.push_back("Tile index: X(" + toString(tileIndex.x) + ") Y("  +
+                              toString(tileIndex.y) + ")");
     
-    result->strings.push_back("Barrier: " + std::to_string(tile->barrier));
+    result->strings.push_back("Barrier: " + toString(tile->barrier));
     if (tile->texture)
     {
-        result->strings.push_back("Texture: " + tile->texture->filepath);
+        result->strings.push_back("Texture: " + String(tile->texture->filepath.c_str()));
     }
 }

@@ -70,7 +70,7 @@ Tile* TileMap::getTile(int x, int y)
     {
         return g_voidTile;
     }
-    return tiles[x + y * height];
+    return tiles[x + y * width];
 }
 
 Vec2 TileMap::checkTileCollision(Vec2 pos, Vec2 vel)
@@ -268,12 +268,14 @@ void TileMap::draw(Camera* camera, Mat3& view)
                 break;
             }
             ASSERT(x > -1);
-            
+            //ASSERT(x != 13 && y != 8);
             Tile* tile = getTile(x, bottomTileY + y);
             tileSprite.texture = tile->texture;
             ASSERT(tile->texture);
-            g_renderer->submitSprite(&tileSprite, Mat3::translation(Vec2(TILE_SIZE * x + HALF_TILE_SIZE,
-                                                                         TILE_SIZE * yIndex + HALF_TILE_SIZE)), view);
+            g_renderer->submitSprite(&tileSprite,
+                                     Mat3::translation(
+                                         Vec2(TILE_SIZE * x + HALF_TILE_SIZE,
+                                              TILE_SIZE * yIndex + HALF_TILE_SIZE)), view, false);
         }
     }
     if (g_debugMode)

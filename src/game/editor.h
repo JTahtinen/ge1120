@@ -13,6 +13,7 @@ struct Editor
     Tile* selectedTile;
     iPoint lastHotTileIndex;
     iPoint hotTileIndex;
+    bool paintMode;
 };
 
 bool initEditor(Editor* editor, Game* game);

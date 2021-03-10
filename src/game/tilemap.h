@@ -2,18 +2,13 @@
 
 #include "camera.h"
 #include "../math/math.h"
+#include "tile.h"
 
 struct Texture;
 
 #define TILE_SIZE (0.2f)
 #define HALF_TILE_SIZE (TILE_SIZE * 0.5f)
 #define MAX_TILE_RASTER_BUFFER_YLEN (50)
-
-struct Tile
-{
-    bool barrier;
-    const Texture* texture;
-};
 
 struct TileRasterBufferElement
 {
@@ -36,6 +31,7 @@ union TileRasterBuffer
 
 struct TileMap
 {
+    //TileCollection tileCollection;
     Tile** tiles;
     int width;
     int height;
