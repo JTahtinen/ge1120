@@ -21,6 +21,7 @@ struct SpriteRenderable
     const Sprite* sprite;
     Mat3 model;
     Mat3 view;
+    float layer;
 };
 
 struct SpriteBatch
@@ -97,7 +98,7 @@ inline bool initSpriteBatch(SpriteBatch* target, const Texture* reference)
     Buffer *spriteVBO = new Buffer();
     spriteVBO->setData(NULL, SPRITE_BUFFER_SIZE, GL_DYNAMIC_DRAW);
     BufferLayout spriteLayout;
-    spriteLayout.addLayoutElement(GL_FLOAT, 2);
+    spriteLayout.addLayoutElement(GL_FLOAT, 3);
     spriteLayout.addLayoutElement(GL_FLOAT, 2);
     for (int i = 0; i < 2; ++i)
     {

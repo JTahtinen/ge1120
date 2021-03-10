@@ -8,7 +8,7 @@ struct Line
 
 struct SpriteData
 {
-    Vec2 pos;
+    Vec3 pos;
     Vec2 texCoord;
     Vec3 model[3];
     Vec3 view[3];
@@ -16,7 +16,7 @@ struct SpriteData
 
 struct QuadData
 {
-    Vec2 pos;
+    Vec3 pos;
     Vec4 color;
     Vec3 model[3];
     Vec3 view[3];
@@ -31,7 +31,7 @@ struct LineData
 
 struct LetterData
 {
-    Vec2 pos;
+    Vec3 pos;
     Vec2 texCoord;
     Vec3 view[3];
 };
