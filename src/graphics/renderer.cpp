@@ -8,8 +8,11 @@
 #include "font.h"
 #include "renderdefs.h"
 
+#define LAYER_STEP (-0.001f)
+
 Renderer::Renderer()
 {
+    currentLayer = 0.99f;
     viewMatrix = Mat3::identity();
     spriteBatches.init(30);
     
@@ -66,7 +69,7 @@ Renderer::Renderer()
     Buffer *quadVBO = new Buffer();
     quadVBO->setData(NULL, QUAD_BUFFER_SIZE, GL_DYNAMIC_DRAW);
     BufferLayout quadLayout;
-    quadLayout.addLayoutElement(GL_FLOAT, 2);
+    quadLayout.addLayoutElement(GL_FLOAT, 3);
     quadLayout.addLayoutElement(GL_FLOAT, 4);
     for (int i = 0; i < 2; ++i)
     {
@@ -100,7 +103,7 @@ Renderer::Renderer()
     Buffer *letterVBO = new Buffer();
     letterVBO->setData(NULL, LETTER_BUFFER_SIZE, GL_DYNAMIC_DRAW);
     BufferLayout letterLayout;
-    letterLayout.addLayoutElement(GL_FLOAT, 2);
+    letterLayout.addLayoutElement(GL_FLOAT, 3);
     letterLayout.addLayoutElement(GL_FLOAT, 2);
     for (int i = 0; i < 3; ++i)
     {
@@ -182,27 +185,23 @@ void Renderer::renderLine(VertexArray *vao)
     GLCALL(glDrawArrays(GL_LINES, 0, 2));
 }
 
-void Renderer::submitSprite(const Sprite* sprite, Mat3 model, Mat3 view)
+void Renderer::submitSprite(const Sprite* sprite, Mat3 model, Mat3 view, bool increaseDepth)
 {
+    if (increaseDepth)
+    {
+        currentLayer += LAYER_STEP;
+    }
+
     if (!sprite)
     {
         err("Could not submit sprite - pointer was NULL!\n");
         return;
     }
-    SpriteBatch* spriteBatch = NULL; 
-    for (int i = 0; i < spriteBatches.size; ++i)
-    {
-        if (spriteBatches[i].reference->id == sprite->texture->id)
-        {
-            spriteBatches[i].renderables.push_back({sprite, model, view});
-            return;
-        }
-    }
-     
-    spriteBatches.push_back({});
-    spriteBatch = &spriteBatches[spriteBatches.size - 1];
-    initSpriteBatch(spriteBatch, sprite->texture);
-    spriteBatch->renderables.push_back({sprite, model, view});
+
+    SpriteBatch* spriteBatch = createOrFindSpriteBatch(sprite->texture);
+
+    ASSERT(spriteBatch);
+    spriteBatch->renderables.push_back({sprite, model, view, currentLayer});    
 }
 
 void Renderer::submitLine(float x0, float y0, float x1, float y1, Vec2 offset)
@@ -249,6 +248,7 @@ void Renderer::submitQuad(float x0, float y0,
                           float x3, float y3,
                           Vec2 position, Vec4 color)
 {
+
     quadBatch.batch.vao->bind();
     Buffer *buffer = quadBatch.batch.vao->getBuffer(0);
     buffer->bind();
@@ -258,10 +258,12 @@ void Renderer::submitQuad(float x0, float y0,
         std::cout << "[ERROR] Could not submit quad to renderer. Buffer was NULL!" << std::endl;
         return;
     }
+    currentLayer += LAYER_STEP;
     QuadData** quadData = &(QuadData*)quadBatch.dataLayout;
     (*quadData) = (QuadData *)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + quadBatch.batch.numVertices;
     (*quadData)->pos.x = x0;
     (*quadData)->pos.y = y0;
+    (*quadData)->pos.z = currentLayer;
     for (int i = 0; i < 3; ++i)
     {
         (*quadData)->model[i] = model.rows[i];
@@ -271,6 +273,7 @@ void Renderer::submitQuad(float x0, float y0,
     (*quadData)++;
     (*quadData)->pos.x = x1;
     (*quadData)->pos.y = y1;
+    (*quadData)->pos.z = currentLayer;
     for (int i = 0; i < 3; ++i)
     {
         (*quadData)->model[i] = model.rows[i];
@@ -280,6 +283,7 @@ void Renderer::submitQuad(float x0, float y0,
     (*quadData)++;
     (*quadData)->pos.x = x2;
     (*quadData)->pos.y = y2;
+    (*quadData)->pos.z = currentLayer;
     for (int i = 0; i < 3; ++i)
     {
         (*quadData)->model[i] = model.rows[i];
@@ -289,6 +293,7 @@ void Renderer::submitQuad(float x0, float y0,
     (*quadData)++;
     (*quadData)->pos.x = x3;
     (*quadData)->pos.y = y3;
+    (*quadData)->pos.z = currentLayer;
     for (int i = 0; i < 3; ++i)
     {
         (*quadData)->model[i] = model.rows[i];
@@ -298,8 +303,8 @@ void Renderer::submitQuad(float x0, float y0,
     quadBatch.batch.numVertices += 4;
 
     quadBatch.batch.numIndices += 6;
-
     GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));
+
 }
 
 void Renderer::submitQuad(Vec2 point0, Vec2 point1, Vec2 point2, Vec2 point3, Vec2 position, Vec4 color)
@@ -313,7 +318,7 @@ void Renderer::submitQuad(Quad quad, Vec2 position, Vec4 color)
 }
 
 
-void Renderer::submitText(const std::string& text, Vec2 pos, Mat3 view, float scale)
+void Renderer::submitText(const String& text, Vec2 pos, Mat3 view, float scale)
 {
     if (!font)
     {
@@ -326,7 +331,10 @@ void Renderer::submitText(const std::string& text, Vec2 pos, Mat3 view, float sc
     LetterData** letterData = &letterBatch.dataLayout;
     *letterData = (LetterData*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY) + letterBatch.batch.numVertices;
     float xAdvance = 0;
-    for (int i = 0; i < text.size(); ++i)
+    if (text.size == 0) return;
+    currentLayer += LAYER_STEP;
+    ASSERT(text.size > 0);
+    for (int i = 0; i < text.size; ++i)
     {
         char c = text[i];
         if (c == ' ')
@@ -344,7 +352,8 @@ void Renderer::submitText(const std::string& text, Vec2 pos, Mat3 view, float sc
         float yOff = (font->base - l->height - l->yOffset);
         
         (*letterData)->pos.x = xAdvance + pos.x + xOff * scale;
-        (*letterData)->pos.y = pos.y + yOff * scale;        
+        (*letterData)->pos.y = pos.y + yOff * scale;
+        (*letterData)->pos.z = currentLayer;
         (*letterData)->texCoord = Vec2(l->x, l->y + l->height);
         for (int i = 0; i < 3; ++i)
         {
@@ -353,7 +362,8 @@ void Renderer::submitText(const std::string& text, Vec2 pos, Mat3 view, float sc
         ++(*letterData);
         
         (*letterData)->pos.x = xAdvance + pos.x + xOff * scale;
-        (*letterData)->pos.y = pos.y + (l->height + yOff) * scale;        
+        (*letterData)->pos.y = pos.y + (l->height + yOff) * scale;
+        (*letterData)->pos.z = currentLayer;
         (*letterData)->texCoord = Vec2(l->x, l->y);
         for (int i = 0; i < 3; ++i)
         {
@@ -363,6 +373,7 @@ void Renderer::submitText(const std::string& text, Vec2 pos, Mat3 view, float sc
         
         (*letterData)->pos.x = xAdvance + pos.x + (l->width + xOff) * scale;
         (*letterData)->pos.y = pos.y + (l->height + yOff) * scale;
+        (*letterData)->pos.z = currentLayer;
         (*letterData)->texCoord = Vec2(l->x + l->width, l->y);
         for (int i = 0; i < 3; ++i)
         {
@@ -372,6 +383,7 @@ void Renderer::submitText(const std::string& text, Vec2 pos, Mat3 view, float sc
         
         (*letterData)->pos.x = xAdvance + pos.x + (l->width + xOff) * scale;
         (*letterData)->pos.y = pos.y + yOff * scale;
+        (*letterData)->pos.z = currentLayer;
         (*letterData)->texCoord = Vec2(l->x + l->width, l->y + l->height);
         for (int i = 0; i < 3; ++i)
         {
@@ -385,14 +397,15 @@ void Renderer::submitText(const std::string& text, Vec2 pos, Mat3 view, float sc
     }
     
     GLCALL(glUnmapBuffer(GL_ARRAY_BUFFER));
+
 }
 
-void Renderer::submitText(const std::string& text, Vec2 pos, float scale)
+void Renderer::submitText(const String& text, Vec2 pos, float scale)
 {
     submitText(text, pos, Mat3::view(Vec2(), 0, 1, g_aspect), scale);
 }
 
-void Renderer::submitText(const std::string& text, Vec2 pos)
+void Renderer::submitText(const String& text, Vec2 pos)
 {
     submitText(text, pos, 0.2f);
 }
@@ -433,7 +446,8 @@ void Renderer::flushSprites()
             Quad dim = sprite->dimensions;
          
             (*spriteData)->pos.x = dim.point0.x;
-            (*spriteData)->pos.y = dim.point0.y;        
+            (*spriteData)->pos.y = dim.point0.y;
+            (*spriteData)->pos.z = renderable->layer;
             (*spriteData)->texCoord = Vec2(0, 1);
             for (int i = 0; i < 3; ++i)
             {
@@ -444,7 +458,8 @@ void Renderer::flushSprites()
             ++(*spriteData);
 
             (*spriteData)->pos.x = dim.point1.x;
-            (*spriteData)->pos.y = dim.point1.y;        
+            (*spriteData)->pos.y = dim.point1.y;
+            (*spriteData)->pos.z = renderable->layer;
             (*spriteData)->texCoord = Vec2(0, 0);
             for (int i = 0; i < 3; ++i)
             {
@@ -455,7 +470,8 @@ void Renderer::flushSprites()
             ++(*spriteData);
 
             (*spriteData)->pos.x = dim.point2.x;
-            (*spriteData)->pos.y = dim.point2.y;        
+            (*spriteData)->pos.y = dim.point2.y;
+            (*spriteData)->pos.z = renderable->layer;
             (*spriteData)->texCoord = Vec2(1, 0);
             for (int i = 0; i < 3; ++i)
             {
@@ -466,7 +482,8 @@ void Renderer::flushSprites()
             ++(*spriteData);
 
             (*spriteData)->pos.x = dim.point3.x;
-            (*spriteData)->pos.y = dim.point3.y;        
+            (*spriteData)->pos.y = dim.point3.y;
+            (*spriteData)->pos.z = renderable->layer;
             (*spriteData)->texCoord = Vec2(1, 1);
             for (int i = 0; i < 3; ++i)
             {
@@ -496,6 +513,9 @@ void Renderer::flushSprites()
 
 void Renderer::flush()
 {
+    GLCALL(glClear(GL_DEPTH_BUFFER_BIT));
+//    GLCALL(glClear(GL_COLOR_BUFFER_BIT));
+
     flushSprites();
     
     lineBatch.batch.vao->bind();
@@ -520,4 +540,26 @@ void Renderer::flush()
     GLCALL(glDrawElements(GL_TRIANGLES, letterBatch.batch.numIndices, GL_UNSIGNED_INT, 0));
     letterBatch.batch.numVertices = 0;
     letterBatch.batch.numIndices = 0;
+
+    currentLayer = 0.99f;
+    
+}
+
+SpriteBatch* Renderer::createOrFindSpriteBatch(const Texture* reference)
+{
+    if (!reference) return NULL;
+    SpriteBatch* spriteBatch = NULL; 
+    for (int i = 0; i < spriteBatches.size; ++i)
+    {
+        if (spriteBatches[i].reference->id == reference->id)
+        {
+            return &spriteBatches[i];
+        }
+    }
+    spriteBatches.push_back({});
+    spriteBatch = &spriteBatches.back();
+    initSpriteBatch(spriteBatch, reference);
+    return spriteBatch;
+
+    
 }
