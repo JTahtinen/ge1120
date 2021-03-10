@@ -12,6 +12,18 @@ struct iPoint
 {
     int x;
     int y;
+
+    inline bool operator==(iPoint& other)
+    {
+        bool result = (x == other.x && y == other.y);
+        return result;
+    }
+
+    inline bool operator!=(iPoint& other)
+    {
+        bool result = !(*this == other);
+        return result;
+    }
 };
 
 struct Quad
