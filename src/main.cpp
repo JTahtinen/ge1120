@@ -1,4 +1,5 @@
 #include "application.h"
+#include "util/file.h"
 
 int main(int argc, char** argv)
 {
@@ -13,6 +14,7 @@ int main(int argc, char** argv)
     {
         message("Allocated %d bytes of memory\n", allocationSize);
         stringBuffer = (char*)g_memory.reserve(STRING_BUFFER_SIZE);
+
         Application app;
         if (!init(&app))
         {

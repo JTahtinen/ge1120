@@ -18,6 +18,31 @@
 #include <thread>
 #include "util/file.h"
 #include "ui/ui.h"
+#include "util/textparser.h"
+
+
+
+static void playground()
+{
+    TextParser parser;
+    
+    String text = "Hello\nthere";
+    initParser(&parser, text);
+    setSeparator('e', false, &parser);
+    parser.skipWhiteSpace = false;
+//    parser.skipNewLine = true;
+    String word1(20);
+    int c = 1;
+    while (getLine(&parser, &word1))
+    {
+        message("%d: ", c++);
+        word1.println();
+    }
+
+    //getWord(&parser, &word1);
+    //getWord(&parser, &word2);
+
+}
 
 
 static void setMouseState(bool mode)
@@ -57,14 +82,14 @@ static void updateWindow(Application* app)
             break;
         }
     }
-    g_renderer->setView(Mat3::identity());
+    g_uiRenderer->setView(Mat3::identity());
     if (app->displayMemoryInfo)
     {
         g_memory.visualize();
     }
-    g_renderer->submitText("F1 - Debug toolbox", Vec2(0.4f, -0.47f));
-    g_renderer->submitText("F2 - Editor Mode", Vec2(0.4f, -0.5f));
-    g_renderer->submitText("RMB - Switch mouse mode", Vec2(0.4f, -0.53f));
+    g_uiRenderer->submitText("F1 - Debug toolbox", Vec2(0.4f, -0.47f));
+    g_uiRenderer->submitText("F2 - Editor Mode", Vec2(0.4f, -0.5f));
+    g_uiRenderer->submitText("RMB - Switch mouse mode", Vec2(0.4f, -0.53f));
 
     g_renderer->flush();
     g_uiRenderer->flush();
@@ -84,8 +109,6 @@ static void updateGame(Application* app)
 
 
     static Mat3 cameraToScreen;
-
-    static Tile* selectedTile = g_thingyTile;;
     
     if (app->viewDebugUI)
     {
@@ -135,7 +158,7 @@ static void updateGame(Application* app)
     
     if (g_mouseState)
     {
-        g_renderer->setView(Mat3::identity());
+        g_uiRenderer->setView(Mat3::identity());
         cameraToScreen = screenToWorldProjection(app->game);
         g_projectedMousePos = cameraToScreen * g_mousePosRaw;
 
@@ -144,7 +167,7 @@ static void updateGame(Application* app)
             
             //Vec2 fixedMousePos = Vec2(g_mousePos.x, g_mousePos.y * (1.0f / g_aspect));
         
-            g_renderer->submitText(toString(g_projectedMousePos.x)
+            g_uiRenderer->submitText(toString(g_projectedMousePos.x)
                                           + " " + toString(g_projectedMousePos.y),
                                    g_mousePos + Vec2(0.01f, 0.02f));
             DataStrings dataStrings;
@@ -157,7 +180,7 @@ static void updateGame(Application* app)
             float longestStringWidth = 0;
             for (unsigned int i = 0; i < numStrings; ++i)
             {
-                float currentStringWidth = calculateStringWidth(dataStrings.strings[i], g_renderer->font);
+                float currentStringWidth = calculateStringWidth(dataStrings.strings[i], g_uiRenderer->font);
                 if (currentStringWidth > longestStringWidth)
                 {
                     longestStringWidth = currentStringWidth;
@@ -167,13 +190,14 @@ static void updateGame(Application* app)
                     longestStringWidth, 0,
                     longestStringWidth, (float)numStrings * -0.06f,
                     0, (float)numStrings * -0.06f}; 
-            g_renderer->submitQuad(textBoxDim, g_mousePosRaw + Vec2(0.01f, offset), Vec4(0, 0, 0, 0.5f));
+            g_uiRenderer->submitQuad(textBoxDim, g_mousePosRaw + Vec2(0.01f, offset), Vec4(0, 0, 0, 0.5f));
             for (unsigned int i = 0; i < numStrings; ++i)
             {
-                g_renderer->submitText(dataStrings.strings[i],
+                g_uiRenderer->submitText(dataStrings.strings[i],
                                        g_mousePos + Vec2(0.01f, offset));
                 offset -= 0.03f;
             }
+            dataStrings.strings.clear();
         }
     }
 
@@ -197,13 +221,6 @@ static void updateSystem()
 
 bool init(Application* app)
 {
-    String s = "hello ";// + toString(123);
-    String p = toString(123);
-    String q = s + p;
-    s.println();
-    p.println();
-    q.println();
-
     if (SDL_Init(SDL_INIT_EVERYTHING) == 0)
     {
         app->windowWidth = 1280;
@@ -269,19 +286,21 @@ bool init(Application* app)
         {
             g_renderer->createOrFindSpriteBatch(g_entityTexture);
             g_uiRenderer->createOrFindSpriteBatch(g_entityTexture);
-
+/*
             g_renderer->createOrFindSpriteBatch(g_thingyTexture);
             g_uiRenderer->createOrFindSpriteBatch(g_thingyTexture);
+            
+            g_renderer->createOrFindSpriteBatch(g_wallTex);
+            g_uiRenderer->createOrFindSpriteBatch(g_wallTex);
 
+*/
             g_renderer->createOrFindSpriteBatch(g_redTex);
             g_uiRenderer->createOrFindSpriteBatch(g_redTex);
 
             g_renderer->createOrFindSpriteBatch(g_greenTex);
             g_uiRenderer->createOrFindSpriteBatch(g_greenTex);
 
-            g_renderer->createOrFindSpriteBatch(g_wallTex);
-            g_uiRenderer->createOrFindSpriteBatch(g_wallTex);
-
+ 
             g_uiRenderer->setView(g_view);
 
 
@@ -310,6 +329,7 @@ bool init(Application* app)
 
 void run(Application* app)
 {
+    playground();
     app->running = true;
     unsigned int minFrameTime = 1000 / app->frameCap;    
     g_frameTime = minFrameTime;
@@ -331,7 +351,7 @@ void run(Application* app)
         updateWindow(app);
         if (app->displayTimerInfo)
         {
-            g_renderer->submitText(toString(timerAccumulator), Vec2(0, 0.5f));
+            g_uiRenderer->submitText(toString(timerAccumulator), Vec2(0, 0.5f));
         }
         ++frames;
         
@@ -348,15 +368,15 @@ void run(Application* app)
        
         if (app->displayTimerInfo)
         {
-            g_renderer->submitText("frametime: "
+            g_uiRenderer->submitText("frametime: "
                                    + toString((unsigned int)(g_frameTime * 1000.f))
                                    + "ms", Vec2(-0.95f, 0.5f));
        
-            g_renderer->submitText("fps: "
+            g_uiRenderer->submitText("fps: "
                                    + toString(framesPerSec), Vec2(-0.95, 0.47f));
-            g_renderer->submitText("time(sec): "
+            g_uiRenderer->submitText("time(sec): "
                                    + toString(seconds), Vec2(-0.95, 0.44f));
-            g_renderer->submitText("uncapped frametime: "
+            g_uiRenderer->submitText("uncapped frametime: "
                                    + toString(uncappedFrametime)
                                    + "ms", Vec2(-0.95, 0.41f));
         }
