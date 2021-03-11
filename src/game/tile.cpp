@@ -14,7 +14,7 @@ Tile* getTile(const String& name, TileCollection* collection)
     {
         if (collection->names[i] == name)
         {
-            result = collection->tiles[i];
+            result = &collection->tiles[i];
             break;
         }
     }
@@ -26,8 +26,8 @@ Tile* getTile(const String& name, TileCollection* collection)
 }
 
 
-
-bool addTile(Tile* tile, const char* name, TileCollection* collection)
+/*
+bool addTile(Tile* tile, const String& name, TileCollection* collection)
 {
     if (!tile)
     {
@@ -40,11 +40,26 @@ bool addTile(Tile* tile, const char* name, TileCollection* collection)
         return false;
     }
    
-
-
     collection->tiles.push_back(tile);
     collection->names.push_back(name);
     return true;    
 }
+*/
 
+bool addTile(Texture* texture, bool barrier, const String& name, TileCollection* collection)
+{
+    if (!texture)
+    {
+        err("Could not add tile to collection - Texture was NULL!\n");
+        return false;
+    }
+    if (!collection)
+    {
+        err("Could not add tile to collection - Collection was NULL!\n");
+        return false;
+    }
 
+    collection->tiles.push_back({barrier, texture});
+    collection->names.push_back(name);
+    return true;
+}

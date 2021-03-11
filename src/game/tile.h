@@ -6,15 +6,16 @@
 struct Tile
 {
     bool barrier;
-    const Texture* texture;
+    Texture* texture;
 };
 
 struct TileCollection
 {
-    Vector<Tile*> tiles;
+    Vector<Tile> tiles;
     Vector<String> names;
 };
 
 
 Tile* getTile(const String& name, TileCollection* collection);
-bool addTile(Tile* tile, const char* name, TileCollection* collection);
+//bool addTile(Tile* tile, const String& name, TileCollection* collection);
+bool addTile(Texture* texture, bool barrier, const String& name, TileCollection* collection);
