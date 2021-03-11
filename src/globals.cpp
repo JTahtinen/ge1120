@@ -22,16 +22,16 @@ VertexArray *g_thingyVAO;
 Renderer *g_renderer;
 Renderer *g_uiRenderer;
 Texture *g_entityTexture;
-Texture *g_thingyTexture;
+//Texture *g_thingyTexture;
 Texture *g_redTex;
 Texture *g_greenTex;
-Texture *g_wallTex;
+//Texture *g_wallTex;
 IndexBuffer *g_squareFillIBO;
 IndexBuffer *g_squareLineIBO;
 
 Tile* g_voidTile;
-Tile* g_thingyTile;
-Tile* g_wallTile;
+//Tile* g_thingyTile;
+//Tile* g_wallTile;
 
 
 
@@ -162,8 +162,8 @@ bool initGlobals()
     g_arialFont = loadFont("res/fonts/arial");
 
     
-    g_wallTex = Texture::loadTexture("res/textures/walltile.bmp");;
-    g_thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
+//    g_wallTex = Texture::loadTexture("res/textures/walltile.bmp");;
+//    g_thingyTexture = Texture::loadTexture("res/textures/testImage.bmp");
     g_entityTexture = Texture::loadTexture("res/textures/dude.bmp");
 
 
@@ -180,15 +180,15 @@ bool initGlobals()
     g_uiRenderer->setFont(g_arialFont);
 
     g_voidTile = (Tile*)g_memory.reserve(sizeof(Tile));
-    g_thingyTile = (Tile*)g_memory.reserve(sizeof(Tile));
-    g_wallTile = (Tile*)g_memory.reserve(sizeof(Tile));
+    //  g_thingyTile = (Tile*)g_memory.reserve(sizeof(Tile));
+    //  g_wallTile = (Tile*)g_memory.reserve(sizeof(Tile));
 
     g_voidTile->barrier = true;
     g_voidTile->texture = NULL;
-    g_thingyTile->barrier = false;
-    g_thingyTile->texture = g_thingyTexture;
-    g_wallTile->barrier = true;
-    g_wallTile->texture = g_wallTex;
+    //g_thingyTile->barrier = false;
+    //g_thingyTile->texture = g_thingyTexture;
+    //g_wallTile->barrier = true;
+    //g_wallTile->texture = g_wallTex;
 
     initBuffers();
     return true;
@@ -200,13 +200,13 @@ void deleteGlobals()
     DEL(g_thingyVAO);
     DEL(g_renderer);
     g_entityTexture->del();
-    g_thingyTexture->del();
+//    g_thingyTexture->del();
     g_redTex->del();
     g_greenTex->del();
-    g_wallTex->del();
+//    g_wallTex->del();
     g_memory.release(g_voidTile);
-    g_memory.release(g_thingyTile);
-    g_memory.release(g_wallTile);
+//    g_memory.release(g_thingyTile);
+//    g_memory.release(g_wallTile);
     DEL(g_squareFillIBO);
     DEL(g_squareLineIBO);
     DEL(g_basicShader);

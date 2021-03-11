@@ -26,17 +26,17 @@ extern VertexArray* g_thingyVAO;
 extern Renderer* g_renderer;
 extern Renderer* g_uiRenderer;
 extern Texture* g_entityTexture;
-extern Texture* g_thingyTexture;
+//extern Texture* g_thingyTexture;
 extern Texture* g_redTex;
 extern Texture* g_greenTex;
-extern Texture* g_wallTex;
+//extern Texture* g_wallTex;
 
 extern IndexBuffer* g_squareFillIBO;
 extern IndexBuffer* g_squareLineIBO;
 
 extern Tile* g_voidTile;
-extern Tile* g_thingyTile;
-extern Tile* g_wallTile;
+//extern Tile* g_thingyTile;
+//extern Tile* g_wallTile;
 
 extern Shader*      g_basicShader;
 extern Shader*      g_lineShader;
