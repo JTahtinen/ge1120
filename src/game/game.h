@@ -33,5 +33,6 @@ struct Game
     Actor* spawnActor(Vec2 pos);    
 };
 
-extern Mat3 screenToWorldProjection(Game* game);
-extern void getDataFromPos(Game* game, Vec2 pos, DataStrings* result);
+Mat3 screenToWorldProjection(Game* game);
+void getDataFromPos(Game* game, Vec2 pos, DataStrings* result);
+bool loadTileCollection(const char* filepath, TileCollection* collection);

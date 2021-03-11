@@ -7,6 +7,8 @@
 #include "../math/math.h"
 #include "../graphics/renderer.h"
 #include "../util/string.h"
+#include "../util/textparser.h"
+#include "../util/file.h"
 
 static float speed;
 static float accSpeed;
@@ -27,17 +29,21 @@ void Game::init()
     debugCamera.entity.rotation = 0;
     debugCamera.zoom = 1.0f;
     debugCamera.zoomTarget = 1.0f;
+
     for (int i = 0; i < 3; ++i)
     {
         spawnActor(Vec2(0.7f + i * 0.4f, 0));
     }
     if (tileMap.init(50, 40))
-    {       
+    {
+        loadTileCollection("res/basictiles.tc", &tileMap.tileCollection);
+        //addTile(g_thingyTile, "Grass", &tileMap.tileCollection);
+        //addTile(g_wallTile, "Wall", &tileMap.tileCollection);
         for (int y = 0; y < tileMap.height; ++y)
         {
             for (int x = 0; x < tileMap.width; ++x)
             {
-                tileMap.setTile(x, y, g_thingyTile); 
+                tileMap.setTile(x, y, getTile("Grass", &tileMap.tileCollection)); 
             }
         }
     }
@@ -169,7 +175,7 @@ void Game::update()
     updateCamera(currentCamera);
     if (g_debugMode)
     {
-        g_renderer->submitText("Player Pos: X - " + toString(player->entity.pos.x) +
+        g_uiRenderer->submitText("Player Pos: X - " + toString(player->entity.pos.x) +
                                ", Y - " + toString(player->entity.pos.y), Vec2(-0.1f, -0.3f));
     }                      
 
@@ -256,4 +262,39 @@ void getDataFromPos(Game* game, Vec2 pos, DataStrings* result)
     {
         result->strings.push_back("Texture: " + String(tile->texture->filepath.c_str()));
     }
+}
+
+bool loadTileCollection(const char* filepath, TileCollection* collection)
+{
+        TextParser parser;
+        String tilefile;
+        loadTextFile(filepath, &tilefile);
+        initParser(&parser, tilefile);
+
+        setSeparator(' ', true, &parser);
+        bool tileParsed = false;
+        String tileTexLoc(30);
+        int tilesLoaded = 0;
+        int tileLoadsFailed = 0;
+        while (getLine(&parser, &tileTexLoc))
+        {
+            String barrier(1);
+            getLine(&parser, &barrier);
+            String name(30);
+            getLine(&parser, &name);
+            Texture* tileTex = Texture::loadTexture(std::string(tileTexLoc.c_str()));
+            bool tileBarrier = (barrier != "0");
+            if (addTile(tileTex, tileBarrier, name, collection))
+            {
+                ++tilesLoaded;
+            }
+            else
+            {
+                ++tileLoadsFailed;
+            }
+        }
+
+        message("Tiles loaded: %d\nTile loads failed: %d\n", tilesLoaded, tileLoadsFailed);
+
+        return true;
 }
