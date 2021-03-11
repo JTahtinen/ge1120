@@ -31,7 +31,7 @@ Texture* Texture::loadTexture(const std::string &filepath)
     if (texImage)
     {
         GLCALL(glTexImage2D
-               (GL_TEXTURE_2D, 0, GL_RGBA8, texImage->w, texImage->h, 0, GL_RGBA, GL_UNSIGNED_BYTE, texImage->pixels));
+               (GL_TEXTURE_2D, 0, GL_RGBA8, texImage->w, texImage->h, 0, GL_BGRA, GL_UNSIGNED_BYTE, texImage->pixels));
 
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
