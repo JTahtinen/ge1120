@@ -2,16 +2,7 @@
 #include "../globals.h"
 #include "../defs.h"
 #include <memory.h>
-
-inline size_t getStringSize(const char* text)
-{
-    size_t stringIndex = 0;
-    while (text[stringIndex] != 0)
-    {
-        ++stringIndex;
-    }
-    return stringIndex;
-}
+#include <cstring>
 
 struct String
 {
@@ -36,7 +27,7 @@ struct String
     
     inline String(const char* text)
     {
-        size_t stringSize = getStringSize(text);
+        size_t stringSize = strlen(text);
 
         if (stringSize == 0)
         {
@@ -44,13 +35,22 @@ struct String
         }
         else
         {
-            init(stringSize);
+            if (stringSize > capacity)
+            {
+                init(stringSize);
+            }
             size = stringSize;
             for (size_t i = 0; i < size; ++i)
             {
                 content[i] = text[i];
             }
         }
+    }
+
+    inline String(size_t cap)
+        : capacity(cap)
+    {
+        init(cap);
     }
 
     inline String(const String& other)
@@ -69,11 +69,47 @@ struct String
         }
     }
 
+    inline void resize(size_t newCapacity)
+    {
+        //ASSERT(content);
+        if (newCapacity == size) return;
+        if (newCapacity < size)
+        {
+            warn("Resized string is smaller than original. Results in loss of data\n");        
+        }
+        char* newContent = (char*)g_memory.reserve(sizeof(char) * (newCapacity + 1));
+        for (size_t i = 0; i < size; ++i)
+        {
+            newContent[i] = content[i];
+        }
+        
+        newContent[size] = '\0';
+        g_memory.release(content);
+        content = newContent;
+        capacity = newCapacity;
+    }
 
+    inline void setContent(char* str)
+    {
+        size_t length = strlen(str);
+        if (capacity < length)
+        {
+            init(length);
+        }
+        else
+        {
+            content[length] = '\0';
+        }
+        for (size_t i = 0; i < length; ++i)
+        {
+            content[i] = str[i];
+        }
+        
+    }
     
     inline static String create(const char* text)
     {
-        size_t stringSize = getStringSize(text);
+        size_t stringSize = strlen(text);
 
         if (stringSize == 0) return String();
 
@@ -123,9 +159,21 @@ struct String
         }
     }
 
+    inline String& append(const char letter)
+    {
+        if (capacity == size)
+        {
+            resize(capacity * 2);
+        }
+        ++size;
+        content[size - 1] = letter;
+        content[size] = '\0';
+        return *this;
+    }
+
     inline String& append(const char* text)
     {
-        size_t appendSize = getStringSize(text);
+        size_t appendSize = strlen(text);
         if (appendSize == 0) return *this;
         size_t newSize = size + appendSize;
         if (capacity < newSize)
@@ -153,6 +201,11 @@ struct String
         return append(other.content);
     }
 
+    inline void clear()
+    {
+        size = 0;
+    }
+
     char* c_str() const
     {
         return content;
@@ -176,7 +229,7 @@ struct String
 
     inline String& operator=(const char* text)
     {
-        size_t stringSize = getStringSize(text);;
+        size_t stringSize = strlen(text);;
 
         char* newContent = NULL;
         size_t newCapacity = stringSize;
@@ -237,7 +290,7 @@ struct String
 
     inline String operator+(const char* text) const
     {
-        size_t appendSize = getStringSize(text);
+        size_t appendSize = strlen(text);
         if (size == 0 && appendSize == 0) return {NULL, 0, 0};
         if (appendSize == 0) return String::create(content);
         if (size == 0) return String::create(text);
