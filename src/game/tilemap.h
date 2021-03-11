@@ -31,7 +31,7 @@ union TileRasterBuffer
 
 struct TileMap
 {
-    //TileCollection tileCollection;
+    TileCollection tileCollection;
     Tile** tiles;
     int width;
     int height;
