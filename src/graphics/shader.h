@@ -26,5 +26,4 @@ class Shader
     Shader(unsigned int id);
     static unsigned int compileShader(GLenum type, const std::string& fileSource);
     int getUniformLocation(const std::string& u_Name);
-
 };
