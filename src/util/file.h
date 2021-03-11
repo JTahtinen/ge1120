@@ -4,6 +4,7 @@
 #include <fstream>
 #include <stdio.h>
 #include "../defs.h"
+#include "../util/string.h"
 
 inline std::string loadTextFile(const std::string &filepath)
 {
@@ -28,13 +29,38 @@ inline std::string loadTextFile(const std::string &filepath)
     return text;
 }
 
-inline void loadBinaryFile(const char* filepath, void* ptr, size_t numBytes)
+inline bool loadTextFile(const char* filepath, String* target)
+{
+    if (!target)
+    {
+        err("Could not load text file: %s - target string was NULL!\n");
+        return false;
+    }
+    FILE* fp = fopen(filepath, "r");
+    if (!fp)
+    {
+        err("Could not open text file: %s\n", filepath);
+        return false;
+    }
+    //Determine size of file;
+    
+    fseek(fp, 0, SEEK_END);
+    size_t fileSize = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    target->init(fileSize);
+    fread(target->content, 1, fileSize, fp);
+    target->size = fileSize;
+    fclose(fp);
+    return true;
+}
+
+inline bool loadBinaryFile(const char* filepath, void* ptr, size_t numBytes)
 {
     FILE* fp = fopen(filepath, "rb");
     if (!fp)
     {
         err("Could not open binary file: %s\n", filepath);
-        return;
+        return false;
     }
     //Determine size of file
     fseek(fp, 0, SEEK_END); 
@@ -53,11 +79,18 @@ inline void loadBinaryFile(const char* filepath, void* ptr, size_t numBytes)
     }
     fread(ptr, 1, bytesToRead, fp);
     fclose(fp);
+    return true;
 }
 
-inline void saveBinaryFile(const char* filepath, void* data, size_t numBytes)
+inline bool saveBinaryFile(const char* filepath, void* data, size_t numBytes)
 {
     FILE* fp = fopen(filepath, "wb");
+    if (!fp)
+    {
+        err("Could not open binary file: %s for writing!\n", filepath);
+        return false;
+    }
     fwrite(data, numBytes, 1, fp);  
     fclose(fp);
+    return true;
 }
