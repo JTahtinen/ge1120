@@ -171,7 +171,7 @@ void updateUI(UI* ui)
     
 void drawUI(UI* ui)
 {
-//    g_uiRenderer->setView(g_view);
+    g_uiRenderer->setView(g_view);
 
     static Quad buttonQuad(0, 0,
                            0, 0 - buttonH,
