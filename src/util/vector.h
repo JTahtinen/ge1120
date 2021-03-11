@@ -47,7 +47,8 @@ struct Vector
     {
         if (data)
         {
-            message("Releasing memory\n");
+//            message("Releasing memory\n");
+            clear();
             g_memory.release(data);
         }
     }
@@ -120,8 +121,9 @@ struct Vector
 
     inline void erase(size_t index, size_t amt)
     {
-        if (index == size - 1 && amt == 1)
+        if (index == size - 1 && amt > 0)
         {
+            data[size - 1].~T();
             --size;
             return;
         }
@@ -136,8 +138,10 @@ struct Vector
             {
                 finalAmt = size - index;
             }
-            for (size_t i = index; i < size - finalAmt; ++i)
+            for (size_t i = index; i < index + finalAmt; ++i)
             {
+                data[i].~T();
+                if ((i + finalAmt) < size)
                 data[i] = data[i + finalAmt];
             }
             size -= finalAmt;
@@ -151,7 +155,8 @@ struct Vector
 
     inline void clear()
     {
-        size = 0;
+        erase(0, size);
+        //size = 0;
     }
 
     inline T& back()
