@@ -152,7 +152,7 @@ void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool st
         target->buffer[y] = xIndex;
         if (g_debugMode)
         {
-            g_renderer->submitQuad(debugQuad, curScreenPos, debugQuadColor);
+            g_uiRenderer->submitQuad(debugQuad, curScreenPos, debugQuadColor);
         }
   
     }
@@ -217,10 +217,11 @@ void TileMap::draw(Camera* camera, Mat3& view)
     writeVecToTileRasterBuffer(left, top, true, &xStartBuffer1);
     writeVecToTileRasterBuffer(right, top, false, &xEndBuffer1);
 
-    int totalBufferSize = (xStartBuffer0.yLength + xStartBuffer1.yLength + 1) * 2;
+    size_t totalBufferSize = (xStartBuffer0.yLength + xStartBuffer1.yLength + 1) * 2;
 
     ASSERT(totalBufferSize > 0);
-    int* combinedBuffer = (int*)g_memory.reserve(sizeof(int) * totalBufferSize);
+    size_t bufferMemorySize = sizeof(int) * totalBufferSize;
+    int* combinedBuffer = (int*)g_memory.reserve(bufferMemorySize);
 
     int xStartIndex = 0;
     for (int i = 0; i < xStartBuffer0.yLength; ++i)
@@ -255,7 +256,9 @@ void TileMap::draw(Camera* camera, Mat3& view)
         int yIndex = bottomTileY + y;
         if (yIndex < 0) continue;
         if (yIndex >= height) break;
-        for (int x = combinedBuffer[y * 2]; x < combinedBuffer[y * 2 + 1] + 1; ++x)
+        size_t bufferStartIndex = y * 2;
+        size_t bufferEndIndex = bufferStartIndex + 1;
+        for (int x = combinedBuffer[bufferStartIndex]; x < combinedBuffer[bufferEndIndex] + 1; ++x)
         {
             if (x < 0)
             {
@@ -269,6 +272,8 @@ void TileMap::draw(Camera* camera, Mat3& view)
             }
             ASSERT(x > -1);
             //ASSERT(x != 13 && y != 8);
+            ASSERT(bufferStartIndex < bufferMemorySize);
+            ASSERT(bufferEndIndex < bufferMemorySize);
             Tile* tile = getTile(x, bottomTileY + y);
             tileSprite.texture = tile->texture;
             ASSERT(tile->texture);
