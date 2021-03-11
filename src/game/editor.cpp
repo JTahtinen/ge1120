@@ -32,8 +32,15 @@ bool initEditor(Editor* editor, Game* game)
     editor->selectableTiles.init(10);
     editor->hotTileIndex = {0, 0};
     editor->buttonHandles.push_back(createButton("Empty", &editor->ui));
-    addSelectableTile(g_thingyTile, "Grass tile", editor);
-    addSelectableTile(g_wallTile, "Wall tile", editor);
+
+    TileCollection& tileCollection = game->tileMap.tileCollection;
+    
+    for (size_t i = 0; i < tileCollection.names.size; ++i)
+    {
+        addSelectableTile(&tileCollection.tiles[i], tileCollection.names[i], editor);
+    }
+//    addSelectableTile(g_thingyTile, "Grass tile", editor);
+//    addSelectableTile(g_wallTile, "Wall tile", editor);
     
     editor->selectedTile = NULL;
     editor->paintMode = false;
@@ -103,6 +110,7 @@ void viewEditor(Editor* editor)
     {
         tileSprite.texture = NULL;
     }
+    g_uiRenderer->setView(g_view);
     g_uiRenderer->submitQuad(spriteBGQuad, Vec2(0.7, 0.3f), Vec4(0, 0, 0, 1));
     if (tileSprite.texture)
     {
