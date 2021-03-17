@@ -1,10 +1,10 @@
 #pragma once
-#include <string>
+#include "../util/string.h"
 
 struct Texture
 {
     unsigned int id;
-    std::string filepath;
+    String filepath;
     bool valid;
     unsigned int widthInPixels;
     unsigned int heightInPixels;
@@ -14,5 +14,5 @@ public:
     ~Texture();
     void del();
     void bind(unsigned int slot = 0) const;
-    static Texture* loadTexture(const std::string& filepath);
+    static Texture* loadTexture(const String& filepath);
 };

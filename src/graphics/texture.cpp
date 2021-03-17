@@ -20,7 +20,7 @@ void Texture::bind(unsigned int slot) const
     GLCALL(glBindTexture(GL_TEXTURE_2D, id));
 }
 
-Texture* Texture::loadTexture(const std::string &filepath)
+Texture* Texture::loadTexture(const String &filepath)
 {
     GLuint id;
     GLCALL(glGenTextures(1, &id));
@@ -40,10 +40,9 @@ Texture* Texture::loadTexture(const std::string &filepath)
         
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
         GLCALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        //result = new Texture(id, filepath);
+
         
         result = (Texture*)g_memory.reserve(sizeof(Texture));
-
         result->id = id;
         result->filepath = filepath;
         result->valid = true;
