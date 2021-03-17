@@ -2,6 +2,8 @@
 #include "../math/vec2.h"
 #include "../graphics/sprite.h"
 #include "../util/string.h"
+#include "conversation.h"
+
 struct Entity
 {
     unsigned int id;
@@ -17,4 +19,5 @@ struct Actor
     Entity entity;
     Sprite* sprite;
     float speed;
+    Conversation* conv;
 };
