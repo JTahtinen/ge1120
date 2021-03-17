@@ -59,10 +59,10 @@ inline int absINT(int val)
     return val;
 }
 
-inline int abs(int val)
+inline float absFloat(float val)
 {
-    if (val >= 0) return val;
-    return -val;
+    if (val < 0) return -val;
+    return val;
 }
 
 inline bool valIsBetween(float val, float min, float max)
