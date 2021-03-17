@@ -47,9 +47,8 @@ inline bool loadTextFile(const char* filepath, String* target)
     fseek(fp, 0, SEEK_END);
     size_t fileSize = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    target->init(fileSize);
+    target->init(fileSize, fileSize);
     fread(target->content, 1, fileSize, fp);
-    target->size = fileSize;
     fclose(fp);
     return true;
 }
