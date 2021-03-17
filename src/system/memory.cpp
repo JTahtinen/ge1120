@@ -33,6 +33,10 @@ bool Memory::init(size_t size)
     availableMemory = size;
     allocation = (void*)malloc(allocationSize);
     bool result = allocation;
+    if (result)
+    {
+        memset(allocation, 0, allocationSize);
+    }
     return result;
 }
 
@@ -120,6 +124,7 @@ void *Memory::reserve(size_t size)
         }
 #endif
     ASSERT(block);
+//    memset(block, 0, size);
     return block;
 }
 
@@ -128,11 +133,11 @@ bool Memory::release(void *address)
     bool blockReleased = false;
     if (reservedMemoryInfo.find(address) == reservedMemoryInfo.end())
     {
-        err("Could not release memory by address: %d - Block not found!\n", address);
+        warn("Could not release memory by address: %d - Block not found!\n", address);
         return false;
     }
     MemoryBlockInfo block = reservedMemoryInfo[address];
-//    memset((uint8_t*)allocation + block.start, 0, block.end - block.start);
+    memset((uint8_t*)allocation + block.start, 0, block.end - block.start);
     if (numReservedMemoryIndices == 0)
     {
         reservedMemoryIndices[numReservedMemoryIndices++] = block.start;
