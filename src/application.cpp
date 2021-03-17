@@ -19,29 +19,13 @@
 #include "util/file.h"
 #include "ui/ui.h"
 #include "util/textparser.h"
-
+#include "game/conversation.h"
 
 
 static void playground()
 {
-    TextParser parser;
-    
-    String text = "Hello\nthere";
-    initParser(&parser, text);
-    setSeparator('e', false, &parser);
-    parser.skipWhiteSpace = false;
-//    parser.skipNewLine = true;
-    String word1(20);
-    int c = 1;
-    while (getLine(&parser, &word1))
-    {
-        message("%d: ", c++);
-        word1.println();
-    }
-
-    //getWord(&parser, &word1);
-    //getWord(&parser, &word2);
-
+//    Conversation test;
+//    loadConversation("res/test.conv", &test);
 }
 
 
