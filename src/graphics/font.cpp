@@ -8,7 +8,7 @@
 
 Font* loadFont(std::string filepath)
 {
-    Texture* atlas = Texture::loadTexture(filepath + ".png");
+    Texture* atlas = Texture::loadTexture(String(filepath.c_str()) + ".png");
     if (!atlas)
     {
         message("[ERROR] Could not load font atlas: %s.png\n", filepath);
@@ -16,7 +16,7 @@ Font* loadFont(std::string filepath)
     }
 
 
-    std::string fontFile = loadTextFile(filepath + ".fnt");
+    std::string fontFile = loadTextFile(std::string(filepath.c_str()) + ".fnt");
     if (fontFile == "")
     {
         message("[ERROR] Could not load font file: %s.fnt\n", filepath);
