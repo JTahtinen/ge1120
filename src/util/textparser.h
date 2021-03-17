@@ -17,4 +17,3 @@ bool getWord(const String& text, size_t& index, char separator,
              bool skipWhiteSpace, bool skipSeparator, bool skipNewLine, String* target);
 bool getWord(TextParser* parser, String* target);
 bool getLine(TextParser* parser, String* target);
-

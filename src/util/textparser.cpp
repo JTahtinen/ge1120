@@ -17,7 +17,7 @@ bool initParser(TextParser* parser, const String& text)
     parser->separator = '\0';
     parser->skipSeparator = true;
     parser->skipWhiteSpace = true;
-    parser->skipNewLine = false;
+    parser->skipNewLine = true;
     return true;
 }
 
@@ -40,16 +40,27 @@ bool getWord(const String& text, size_t& index, char separator,
         return false;
     }
     target->clear();
+
     while(text[index] != '\0')
     {
         char c = text[index];
-        if (!(c == separator && skipSeparator)
-            && !(c == ' ' && skipWhiteSpace)
-            && !(c == '\n' && skipNewLine))
+        if (c == '\n')
         {
-            target->append(text[index]);
+            ++index;
+            if (skipNewLine)
+            {
+                break;
+            }
+            target->append(c);
+            break;
+        }
+        if (!(c == separator && skipSeparator)
+            && !(c == ' ' && skipWhiteSpace))
+        {
+            target->append(c);            
         }
         ++index;
+        
         if (c == separator)
         {           
             break;
@@ -58,6 +69,7 @@ bool getWord(const String& text, size_t& index, char separator,
     bool result = target->size > 0;
     return result;
 }
+
 bool getWord(TextParser* parser, String* target)
 {
     bool result = getWord(parser->text, parser->index, parser->separator,
