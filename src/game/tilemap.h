@@ -8,7 +8,7 @@ struct Texture;
 
 #define TILE_SIZE (0.2f)
 #define HALF_TILE_SIZE (TILE_SIZE * 0.5f)
-#define MAX_TILE_RASTER_BUFFER_YLEN (50)
+#define MAX_TILE_RASTER_BUFFER_YLEN (500)
 
 struct TileRasterBufferElement
 {
@@ -17,16 +17,20 @@ struct TileRasterBufferElement
     int yStart;
 };
 
-union TileRasterBuffer
+struct TileRasterBuffer
 {
-    struct
+    union
     {
-        TileRasterBufferElement xStartBuffer0;
-        TileRasterBufferElement xEndBuffer0;
-        TileRasterBufferElement xStartBuffer1;
-        TileRasterBufferElement xEndBuffer1;
+        struct
+        {
+            TileRasterBufferElement xStartBuffer0;
+            TileRasterBufferElement xEndBuffer0;
+            TileRasterBufferElement xStartBuffer1;
+            TileRasterBufferElement xEndBuffer1;
+        };
+        TileRasterBufferElement elems[4];
     };
-    TileRasterBufferElement elems[4];
+    int yStart;
 };
 
 struct TileMap
@@ -50,7 +54,7 @@ struct TileMap
     Vec2 findTileIntersection(Vec2 pos, Vec2 dir);
     Vec2 findHorizontalTileIntersection(Vec2 pos, Vec2 dir);
     Vec2 findVerticalTileIntersection(Vec2 pos, Vec2 dir);
-private:
+    bool calculateTileRasterBuffer(Camera* camera);
     void writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start,
                                     TileRasterBufferElement* target);
     

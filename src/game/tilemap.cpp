@@ -103,7 +103,7 @@ Vec2 TileMap::checkTileCollision(Vec2 pos, Vec2 vel)
     }
     return Vec2(newXVel, newYVel);
 }
-        
+
 void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start,
                                          TileRasterBufferElement* target)
 {
@@ -117,12 +117,7 @@ void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool st
 
     int yLen = (abs)(endTileY - startTileY);
 
-    if (yLen > MAX_TILE_RASTER_BUFFER_YLEN - 1) return;
-
-    if (yLen > 50)
-    {
-        yLen = 50;
-    }
+    if (yLen >= MAX_TILE_RASTER_BUFFER_YLEN - 1) yLen = MAX_TILE_RASTER_BUFFER_YLEN - 1;
     target->yLength = yLen;
     if (yLen == 0) return;
     yLen += 1;
@@ -148,18 +143,20 @@ void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool st
             curScreenPos = findVerticalTileIntersection(curScreenPos + dir * 0.00001f, dir);
         }
         int xIndex = floorToInt(curScreenPos.x / TILE_SIZE);
+        if (start && xIndex < 0) xIndex = 0;
+        if (!start && xIndex >= width) xIndex = width - 1;
 
         target->buffer[y] = xIndex;
         if (g_debugMode)
         {
-            g_uiRenderer->submitQuad(debugQuad, curScreenPos, debugQuadColor);
+            g_uiRenderer->submitQuad(debugQuad, Vec2((float)xIndex * TILE_SIZE, curScreenPos.y), debugQuadColor);
         }
   
     }
     target->yLength = yLen;
 }
 
-void TileMap::draw(Camera* camera, Mat3& view)
+bool TileMap::calculateTileRasterBuffer(Camera* camera)
 {
     Vec2 top;
     Vec2 left;
@@ -198,6 +195,16 @@ void TileMap::draw(Camera* camera, Mat3& view)
         left = camera->getBottomLeft();
     }
 
+    if (g_debugMode)
+    {
+        g_renderer->submitLine(top, right, {0, 0});
+        g_renderer->submitLine(right, bottom, {0, 0});
+        g_renderer->submitLine(bottom, left, {0, 0});
+        g_renderer->submitLine(left, top, {0, 0});
+        g_renderer->submitLine(bottom, top, {0, 0});
+    }
+
+
     iPoint topTile = getTileIndexAt(top);
     iPoint leftTile = getTileIndexAt(left);
     iPoint rightTile = getTileIndexAt(right);
@@ -208,14 +215,120 @@ void TileMap::draw(Camera* camera, Mat3& view)
     int leftTileY = leftTile.y;
     int rightTileY = rightTile.y;
 
+    
+    Vec2 finalStartPointBeginning;
+    Vec2 finalStartPointEnd;
+   
+    Vec2 startDir;
+    Vec2 endDir;
+    Vec2 startVec;
+    Vec2 endVec;
+    bool bottomInside = true;
+    bool leftInside = true;
+    bool rightInside = true;
+
     TileRasterBufferElement& xStartBuffer0 = tileRasterBuffer.xStartBuffer0;
     TileRasterBufferElement& xEndBuffer0 = tileRasterBuffer.xEndBuffer0;
     TileRasterBufferElement& xStartBuffer1 = tileRasterBuffer.xStartBuffer1;
     TileRasterBufferElement& xEndBuffer1 = tileRasterBuffer.xEndBuffer1;
-    writeVecToTileRasterBuffer(bottom, left, true, &xStartBuffer0);
-    writeVecToTileRasterBuffer(bottom, right, false, &xEndBuffer0);
-    writeVecToTileRasterBuffer(left, top, true, &xStartBuffer1);
-    writeVecToTileRasterBuffer(right, top, false, &xEndBuffer1);
+
+    
+    if (top.y < 0)
+    {
+        return false;
+    }
+    if (left.y < 0)
+    {
+        leftInside = false;
+        bottomInside = false;
+    }
+    
+    if (right.y < 0)
+    {
+        rightInside = false;
+        bottomInside = false;
+    }
+
+    if (bottomInside && bottom.y < 0)
+    {
+        bottomInside = false;
+    }
+    
+    bool startOutOfBounds = !(bottomInside);// && leftInside && rightInside);
+
+    for (int i = 0; i < 4; ++i)
+    {
+        tileRasterBuffer.elems[i].yLength = 0;
+    }
+
+
+    if (startOutOfBounds)
+    {
+
+        //finalStartPointEnd = endVec + Vec2(getXAtLinePoint(endDir, 0), 0); 
+        if (leftInside)
+        {
+            
+            startDir = left - bottom;
+            startVec = bottom;
+            finalStartPointBeginning = startVec + Vec2(getXAtLinePoint(startDir, -startVec.y), -startVec.y);
+             
+            writeVecToTileRasterBuffer(finalStartPointBeginning, left, true, &xStartBuffer0);
+            writeVecToTileRasterBuffer(left, top, true, &xStartBuffer1);
+        }
+        else
+        {
+            startDir = top - left;
+            startVec = left;
+            finalStartPointBeginning = startVec + Vec2(getXAtLinePoint(startDir, -startVec.y), -startVec.y);
+            writeVecToTileRasterBuffer(finalStartPointBeginning, top, true, &xStartBuffer0);
+        }
+
+//        g_uiRenderer->submitQuad(debugQuad, finalStartPointBeginning, Vec4(1, 0, 1, 1));
+        if (rightInside)
+        {
+            endDir = right - bottom;
+            endVec = bottom;
+            finalStartPointEnd = endVec + Vec2(getXAtLinePoint(endDir, -endVec.y), -endVec.y);
+            writeVecToTileRasterBuffer(finalStartPointEnd, right, false, &xEndBuffer0);
+            writeVecToTileRasterBuffer(right, top, false, &xEndBuffer1);  
+
+        }
+        else
+        {
+            endDir = top - right;
+            endVec = right;
+            finalStartPointEnd = endVec + Vec2(getXAtLinePoint(endDir, -endVec.y), -endVec.y);
+            writeVecToTileRasterBuffer(finalStartPointEnd, top, false, &xEndBuffer0);
+
+        }
+//        g_uiRenderer->submitQuad(debugQuad, finalStartPointEnd, Vec4(1, 0, 1, 1));
+        tileRasterBuffer.yStart = 0;
+    }
+    else
+    {
+        writeVecToTileRasterBuffer(bottom, left, true, &xStartBuffer0);
+        writeVecToTileRasterBuffer(bottom, right, false, &xEndBuffer0);
+        writeVecToTileRasterBuffer(left, top, true, &xStartBuffer1);
+        writeVecToTileRasterBuffer(right, top, false, &xEndBuffer1);
+        tileRasterBuffer.yStart = bottom.y / TILE_SIZE;
+    }
+    
+    return true;
+}
+
+
+void TileMap::draw(Camera* camera, Mat3& view)
+{
+    g_uiRenderer->setView(view);
+    if (!calculateTileRasterBuffer(camera))
+    {
+        return;
+    }
+    TileRasterBufferElement& xStartBuffer0 = tileRasterBuffer.xStartBuffer0;
+    TileRasterBufferElement& xEndBuffer0 = tileRasterBuffer.xEndBuffer0;
+    TileRasterBufferElement& xStartBuffer1 = tileRasterBuffer.xStartBuffer1;
+    TileRasterBufferElement& xEndBuffer1 = tileRasterBuffer.xEndBuffer1;
 
     size_t totalBufferSize = (xStartBuffer0.yLength + xStartBuffer1.yLength + 1) * 2;
 
@@ -253,7 +366,7 @@ void TileMap::draw(Camera* camera, Mat3& view)
    
     for (int y = 0; y < totalBufferSize / 2; ++y)
     {
-        int yIndex = bottomTileY + y;
+        int yIndex = tileRasterBuffer.yStart + y;
         if (yIndex < 0) continue;
         if (yIndex >= height) break;
         size_t bufferStartIndex = y * 2;
@@ -271,10 +384,9 @@ void TileMap::draw(Camera* camera, Mat3& view)
                 break;
             }
             ASSERT(x > -1);
-            //ASSERT(x != 13 && y != 8);
             ASSERT(bufferStartIndex < bufferMemorySize);
             ASSERT(bufferEndIndex < bufferMemorySize);
-            Tile* tile = getTile(x, bottomTileY + y);
+            Tile* tile = getTile(x, tileRasterBuffer.yStart + y);
             tileSprite.texture = tile->texture;
             ASSERT(tile->texture);
             g_renderer->submitSprite(&tileSprite,
@@ -283,14 +395,7 @@ void TileMap::draw(Camera* camera, Mat3& view)
                                               TILE_SIZE * yIndex + HALF_TILE_SIZE)), view, false);
         }
     }
-    if (g_debugMode)
-    {
-        g_renderer->submitLine(top, right, {0, 0});
-        g_renderer->submitLine(right, bottom, {0, 0});
-        g_renderer->submitLine(bottom, left, {0, 0});
-        g_renderer->submitLine(left, top, {0, 0});
-    }
-    g_memory.release(combinedBuffer);
+        g_memory.release(combinedBuffer);
 }
 
 Vec2 TileMap::getWorldAbsSize() const
