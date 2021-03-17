@@ -22,15 +22,18 @@ struct Game
     Camera camera;
     Camera debugCamera;
     Camera* currentCamera;
-
-
+    Vector<Conversation> conversations;
+    Actor* playerTarget;
+    Conversation* activeConversation;
+    bool actorEngaged;
     void init();
     ~Game();
     void update();
     void render();
     private:
     void drawActor(Actor* e) const;
-    Actor* spawnActor(Vec2 pos);    
+    Actor* spawnActor(Vec2 pos);
+    void engageActor(Actor* actor);
 };
 
 Mat3 screenToWorldProjection(Game* game);
