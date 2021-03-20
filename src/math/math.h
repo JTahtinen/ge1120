@@ -55,14 +55,22 @@ inline float getYAtLinePoint(const Vec2 line, float x)
 
 inline int absINT(int val)
 {
+#if 0
     if (val < 0) return -val;
     return val;
+#endif
+    float result = val + (val < 0) * (2 * (-val));
+    return result;
 }
 
 inline float absFloat(float val)
 {
+#if 0
     if (val < 0) return -val;
     return val;
+#endif
+    float result = val + (val < 0) * (2 * (-val));
+    return result;
 }
 
 inline bool valIsBetween(float val, float min, float max)
@@ -120,15 +128,7 @@ inline Vec2 createVec2FromAngle(float degrees)
 
 inline int floorToInt(float val)
 {
-    int result;
-    if (val < 0)
-    {
-        result = (int)(val - 1.0f);
-    }
-    else
-    {
-        result = (int)val;
-    }
+    int result = (int)(val - ((val < 0) * 1.0f));
     return result;
 }
 
