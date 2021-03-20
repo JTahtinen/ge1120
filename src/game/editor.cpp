@@ -33,14 +33,12 @@ bool initEditor(Editor* editor, Game* game)
     editor->hotTileIndex = {0, 0};
     editor->buttonHandles.push_back(createButton("Empty", &editor->ui));
 
-    TileCollection& tileCollection = game->tileMap.tileCollection;
+    TileCollection& tileCollection = game->tileCollection;
     
     for (size_t i = 0; i < tileCollection.names.size; ++i)
     {
         addSelectableTile(&tileCollection.tiles[i], tileCollection.names[i], editor);
     }
-//    addSelectableTile(g_thingyTile, "Grass tile", editor);
-//    addSelectableTile(g_wallTile, "Wall tile", editor);
     
     editor->selectedTile = NULL;
     editor->paintMode = false;
@@ -68,7 +66,10 @@ void updateEditor(Editor* editor)
     if (!editor->ui.inFocus && !editor->ui.drag)
     {
         editor->lastHotTileIndex = editor->hotTileIndex;
-        editor->hotTileIndex = editor->game->tileMap.getTileIndexAt(g_projectedMousePos);
+        //TODO: Check which tilemap the cursor is on
+        TileMap* tileMap = getTileMapAtWorldPos(g_projectedMousePos, editor->game);
+        if (!tileMap) return;
+        editor->hotTileIndex = tileMap->getTileIndexAt(g_projectedMousePos);
         bool setTile;
         if (g_input.mouseLeftClicked
             || (g_input.mouseLeftHeld && editor->hotTileIndex != editor->lastHotTileIndex))
@@ -88,7 +89,7 @@ void updateEditor(Editor* editor)
         {
             if (setTile && editor->selectedTile)
             {            
-                editor->game->tileMap.setTile(editor->hotTileIndex.x, editor->hotTileIndex.y,
+                tileMap->setTile(editor->hotTileIndex.x, editor->hotTileIndex.y,
                                               editor->selectedTile);
             }
         }
