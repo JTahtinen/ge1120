@@ -14,7 +14,8 @@ struct DataStrings
 
 struct Game
 {
-    TileMap tileMap;
+    TileCollection tileCollection;
+    Vector<TileMap> tileMaps;
     Actor* player;
     Actor* actors[MAX_GAME_ENTITIES];
     Actor actorPool[MAX_GAME_ENTITIES];
@@ -39,3 +40,4 @@ struct Game
 Mat3 screenToWorldProjection(Game* game);
 void getDataFromPos(Game* game, Vec2 pos, DataStrings* result);
 bool loadTileCollection(const char* filepath, TileCollection* collection);
+TileMap* getTileMapAtWorldPos(Vec2 pos, Game* game);

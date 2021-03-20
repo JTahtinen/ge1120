@@ -35,12 +35,14 @@ void Game::init()
     addOption("I'm sorry. Ask me again", nodeHandles[2], nodeHandles[0], &conv);
     
 */    
-    loadConversation("res/test.conv", &conv); 
- 
+    loadConversation("res/test.conv", &conv);
+    tileMaps.reserve(2);
+    tileMaps.push_back({0});
+    tileMaps.push_back({0});
     numActors = 0;
     speed = 1.0f;
     accSpeed = speed * 2;
-    player = spawnActor(Vec2(3.0f, 3.25f));
+    player = spawnActor(Vec2(0.4f, 0.4f));
     player->entity.name = "Player";
     camera.entity.pos = player->entity.pos;
     camera.entity.rotation = 0;
@@ -55,26 +57,36 @@ void Game::init()
     playerTarget = NULL;
     for (int i = 0; i < 3; ++i)
     {
-        spawnActor(Vec2(0.7f + i * 0.4f, 0));
+        spawnActor(Vec2(0.7f + i * 0.4f, 0.6f));
     }
     actors[1]->conv = &conversations.back();
-    if (tileMap.init(50, 40))
+
+    loadTileCollection("res/basictiles.tc", &tileCollection);
+    if (tileMaps[0].init(20, 10))
     {
-        loadTileCollection("res/basictiles.tc", &tileMap.tileCollection);
-        //addTile(g_thingyTile, "Grass", &tileMap.tileCollection);
-        //addTile(g_wallTile, "Wall", &tileMap.tileCollection);
-        for (int y = 0; y < tileMap.height; ++y)
+        tileMaps[0].position = {0, 0};        
+        for (int y = 0; y < tileMaps[0].height; ++y)
         {
-            for (int x = 0; x < tileMap.width; ++x)
+            for (int x = 0; x < tileMaps[0].width; ++x)
             {
-                tileMap.setTile(x, y, getTile("Grass", &tileMap.tileCollection)); 
+                tileMaps[0].setTile(x, y, getTile("Grass", &tileCollection)); 
             }
         }
+        
     }
-
-
-    
-
+    if (tileMaps[1].init(5, 6))
+    {
+        tileMaps[1].position = {20, 2};
+                
+        for (int y = 0; y < tileMaps[1].height; ++y)
+        {
+            for (int x = 0; x < tileMaps[1].width; ++x)
+            {
+                tileMaps[1].setTile(x, y, getTile("Floor", &tileCollection)); 
+            }
+        }
+        
+    }
 }
 
 
@@ -219,12 +231,13 @@ void Game::update()
             Actor *e = actors[i];
             if (e->entity.vel.length() > 0)
             {
-                Vec2 newVel = tileMap.checkTileCollision(e->entity.pos, e->entity.vel * g_frameTime);
+                //TODO: For all tilemaps
+                Vec2 newVel = tileMaps[0].checkTileCollision(e->entity.pos, e->entity.vel * g_frameTime);
                 e->entity.pos += newVel;
             }
         }
 
-        Tile* currentPlayerTile = tileMap.getTileAtPos(player->entity.pos);    
+        Tile* currentPlayerTile = tileMaps[0].getTileAtPos(player->entity.pos);    
 
         while (player->entity.rotation > 360.0f)
         {
@@ -295,7 +308,10 @@ void Game::render()
     {
         g_uiRenderer->submitText(playerTarget->entity.name, playerTarget->entity.pos + Vec2(0, 0.1f), view, 0.2f);
     }
-    tileMap.draw(&camera, view);
+    for (size_t i = 0; i < tileMaps.size; ++i)
+    {
+        tileMaps[i].draw(&camera, view);
+    }
     for (int i = 0; i < numActors; ++i)
     {
         drawActor(actors[i]);
@@ -314,7 +330,7 @@ void Game::render()
     }
     if (g_debugMode)
     {
-        Vec2 intersection = tileMap.findTileIntersection(player->entity.pos, dir);
+        Vec2 intersection = tileMaps[0].findTileIntersection(player->entity.pos, dir);
         Quad quad = Quad(-0.01f, -0.01f, -0.01f, 0.01f, 0.01f, 0.01f, 0.01f, -0.01f);
         g_renderer->submitQuad(quad, intersection, Vec4(1, 0, 1, 1));
         g_renderer->submitLine(player->entity.pos, player->entity.pos + dir.normalize() * 0.3f, Vec2(0,0));
@@ -336,6 +352,24 @@ Mat3 screenToWorldProjection(Game* game)
     return result;
 }
 
+TileMap* getTileMapAtWorldPos(Vec2 pos, Game* game)
+{
+    if (!game) return NULL;
+    for (size_t i = 0; i < game->tileMaps.size; ++i)
+    {
+        TileMap* tileMap = &game->tileMaps[i];
+        Vec2 tileMapPos = Vec2(tileMap->position.x * TILE_SIZE, tileMap->position.y * TILE_SIZE);
+        Vec2 tileMapDim = tileMap->getWorldAbsSize();
+
+        if (vec2WithinRect(pos, tileMapPos, tileMapPos + tileMapDim))
+        {
+            return tileMap;
+        }
+            
+    }
+    return NULL;
+}
+
 void getDataFromPos(Game* game, Vec2 pos, DataStrings* result)
 {
     
@@ -351,12 +385,17 @@ void getDataFromPos(Game* game, Vec2 pos, DataStrings* result)
         }
                            
     }
-    const Tile* tile = game->tileMap.getTileAtPos(pos);
-    iPoint tileIndex = game->tileMap.getTileIndexAt(pos);
-    
-    if (!tile
-        || tileIndex.x < 0 || tileIndex.x >= game->tileMap.width
-        || tileIndex.y < 0 || tileIndex.y >= game->tileMap.height)
+    TileMap* tileMap = getTileMapAtWorldPos(pos, game);
+    Tile* tile = NULL;
+    iPoint tileIndex {0, 0};
+    if (tileMap)
+    {
+        tile = tileMap->getTileAtPos(pos);
+        tileIndex = tileMap->getTileIndexAt(pos);
+    }
+    if (!tileMap || !tile
+        || tileIndex.x < 0 || tileIndex.x >= game->tileMaps[0].width
+        || tileIndex.y < 0 || tileIndex.y >= game->tileMaps[0].height)
     {
         result->strings.push_back("No data");
         return;
@@ -370,6 +409,8 @@ void getDataFromPos(Game* game, Vec2 pos, DataStrings* result)
         result->strings.push_back("Texture: " + String(tile->texture->filepath.c_str()));
     }
 }
+
+
 
 bool loadTileCollection(const char* filepath, TileCollection* collection)
 {
