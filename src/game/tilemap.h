@@ -35,11 +35,10 @@ struct TileRasterBuffer
 
 struct TileMap
 {
-    TileCollection tileCollection;
     Tile** tiles;
     int width;
     int height;
-
+    iPoint position;
     TileRasterBuffer tileRasterBuffer;
     
     ~TileMap();
