@@ -3,3 +3,4 @@ lib
 obj
 include
 *.pdb
+src/CMakeLists.txt
