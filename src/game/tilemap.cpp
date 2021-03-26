@@ -76,37 +76,6 @@ Tile* TileMap::getTile(int x, int y)
     return tiles[x + y * width];
 }
 
-Vec2 TileMap::checkTileCollision(Vec2 pos, Vec2 vel)
-{
-    Vec2 nextPos = pos + vel;
-    Tile* tile = getTileAtPos(nextPos);
-    if (!tile->barrier)
-    {
-        return vel;
-    }
-    float newXVel;
-    float newYVel;
-    Tile* xTile = getTileAtPos(Vec2(nextPos.x, pos.y));
-    Tile* yTile = getTileAtPos(Vec2(pos.x, nextPos.y));
-    if (!xTile->barrier) newXVel = vel.x;
-    else
-    {
-        int xDir = vel.x > 0 ? 0 : 1;
-        
-        newXVel = ((int)((nextPos.x + xDir * TILE_SIZE)/ TILE_SIZE ) * TILE_SIZE) - pos.x - !xDir * 0.001f;
-        
-    }
-    if (!yTile->barrier) newYVel = vel.y;
-    else
-    {
-        int yDir = vel.y > 0 ? 0 : 1;
-        
-        newYVel = ((int)((nextPos.y + yDir * TILE_SIZE)/ TILE_SIZE) * TILE_SIZE) - pos.y - !yDir * 0.001f;
-        
-    }
-    return Vec2(newXVel, newYVel);
-}
-
 void TileMap::writeVecToTileRasterBuffer(Vec2 startPoint, Vec2 endPoint, bool start,
                                          TileRasterBufferElement* target)
 {

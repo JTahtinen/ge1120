@@ -41,3 +41,4 @@ Mat3 screenToWorldProjection(Game* game);
 void getDataFromPos(Game* game, Vec2 pos, DataStrings* result);
 bool loadTileCollection(const char* filepath, TileCollection* collection);
 TileMap* getTileMapAtWorldPos(Vec2 pos, Game* game);
+Vec2 checkCollision(Vec2 pos, Vec2 vel, Game* game);

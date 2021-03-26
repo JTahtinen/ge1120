@@ -47,7 +47,7 @@ struct TileMap
     iPoint getTileIndexAt(Vec2 worldPos);
     void setTile(int x, int y, Tile* tile);
     Tile* getTile(int x, int y);
-    Vec2 checkTileCollision(Vec2 pos, Vec2 vel);
+
     Vec2 getWorldAbsSize() const;
     void draw(Camera* camera, Mat3& view);
     Vec2 findTileIntersection(Vec2 pos, Vec2 dir);

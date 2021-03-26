@@ -23,18 +23,6 @@ void Game::init()
     {
         actorPool[i].entity.name.content = NULL;
     }
-/*    initConversation(&conv);
-    unsigned int nodeHandles[3];
-    
-    addNode("How's it going?", &conv, &nodeHandles[0]);
-    addNode("What a nice weather!", &conv, &nodeHandles[1]);
-    addNode("No need to be rude!", &conv, &nodeHandles[2]);
-    addOption("Quite well!", nodeHandles[0], nodeHandles[1], &conv); 
-    addOption("Go away!", nodeHandles[0], nodeHandles[2], &conv);
-    addOption("Deal with it!", nodeHandles[2], EXIT_CONVERSATION, &conv);
-    addOption("I'm sorry. Ask me again", nodeHandles[2], nodeHandles[0], &conv);
-    
-*/    
     loadConversation("res/test.conv", &conv);
     tileMaps.reserve(2);
     tileMaps.push_back({0});
@@ -59,7 +47,7 @@ void Game::init()
     {
         spawnActor(Vec2(0.7f + i * 0.4f, 0.6f));
     }
-    actors[1]->conv = &conversations.back();
+    actors[1]->conv = &conv;
 
     loadTileCollection("res/basictiles.tc", &tileCollection);
     if (tileMaps[0].init(20, 10))
@@ -232,7 +220,7 @@ void Game::update()
             if (e->entity.vel.length() > 0)
             {
                 //TODO: For all tilemaps
-                Vec2 newVel = tileMaps[0].checkTileCollision(e->entity.pos, e->entity.vel * g_frameTime);
+                Vec2 newVel = checkCollision(e->entity.pos, e->entity.vel * g_frameTime, this);
                 e->entity.pos += newVel;
             }
         }
@@ -491,4 +479,80 @@ bool loadTileCollection(const char* filepath, TileCollection* collection)
         }
         message("Tile loaded: %d\n", tilesLoaded);
         return true;
+}
+
+
+Vec2 checkCollision(Vec2 pos, Vec2 vel, Game* game)
+{
+    Vec2 nextPos = pos + vel;
+    TileMap* currentTileMap = NULL;
+    TileMap* nextTileMap = NULL;
+
+    for (size_t i = 0; i < game->tileMaps.size; ++i)
+    {
+        TileMap* tileMap = &game->tileMaps[i];
+        
+        iPoint currentTileIndex = tileMap->getTileIndexAt(pos);
+        if (currentTileIndex.x >= 0 && currentTileIndex.x < tileMap->width &&
+            currentTileIndex.y >= 0 && currentTileIndex.y < tileMap->height)
+        {
+            
+            currentTileMap = tileMap;
+            break;
+        }
+    }
+
+    
+    for (size_t i = 0; i < game->tileMaps.size; ++i)
+    {
+        TileMap* tileMap = &game->tileMaps[i];
+        
+        iPoint nextTileIndex = tileMap->getTileIndexAt(nextPos);
+        if (nextTileIndex.x >= 0 && nextTileIndex.x < tileMap->width &&
+            nextTileIndex.y >= 0 && nextTileIndex.y < tileMap->height)
+        {
+            
+            nextTileMap = tileMap;
+            break;
+        }
+    }
+
+    
+    Tile* tile;
+    if (!nextTileMap)
+    {
+        tile = g_voidTile;
+    }
+    else
+    {
+        tile = nextTileMap->getTileAtPos(nextPos);
+    }
+    if (!tile->barrier)
+    {
+        return vel;
+    }
+    
+    ASSERT(tile && currentTileMap);
+    float newXVel;
+    float newYVel;
+    
+    Tile* xTile = currentTileMap->getTileAtPos(Vec2(nextPos.x, pos.y));
+    Tile* yTile = currentTileMap->getTileAtPos(Vec2(pos.x, nextPos.y));
+    if (!xTile->barrier) newXVel = vel.x;
+    else
+    {
+        int xDir = vel.x > 0 ? 0 : 1;
+        
+        newXVel = ((int)((nextPos.x + xDir * TILE_SIZE)/ TILE_SIZE ) * TILE_SIZE) - pos.x - !xDir * 0.001f;
+        
+    }
+    if (!yTile->barrier) newYVel = vel.y;
+    else
+    {
+        int yDir = vel.y > 0 ? 0 : 1;
+        
+        newYVel = ((int)((nextPos.y + yDir * TILE_SIZE)/ TILE_SIZE) * TILE_SIZE) - pos.y - !yDir * 0.001f;
+        
+    }
+    return Vec2(newXVel, newYVel);
 }
