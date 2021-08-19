@@ -2,6 +2,7 @@
 #include "../globals.h"
 #include "../defs.h"
 #include "../graphics/renderer.h"
+#include "../context.h"
 
 static void addSelectableTile(Tile* tile, const String& name, Editor* editor)
 {
@@ -12,16 +13,12 @@ static void addSelectableTile(Tile* tile, const String& name, Editor* editor)
     }
     
     editor->selectableTiles.push_back(tile);
-    editor->buttonHandles.push_back(createButton(name, &editor->ui));
+    editor->buttonHandles.push_back(createButton(name, editor->box));
 }
 
-bool initEditor(Editor* editor, Game* game)
+bool initEditor(Editor* editor, Game* game, UI* ui)
 {
-    if (!initUI("TILES", &editor->ui))
-    {
-        err("Could not init editor - UI Creation failed!\n");
-        return false;
-    }
+    editor->box = createButtonBox("TILES", ui);
     if (!game)
     {
         err("Could not create editor - Game was NULL!\n");
@@ -31,7 +28,7 @@ bool initEditor(Editor* editor, Game* game)
     editor->buttonHandles.init(10);
     editor->selectableTiles.init(10);
     editor->hotTileIndex = {0, 0};
-    editor->buttonHandles.push_back(createButton("Empty", &editor->ui));
+    editor->buttonHandles.push_back(createButton("Empty", editor->box));
 
     TileCollection& tileCollection = game->tileCollection;
     
@@ -50,20 +47,20 @@ void updateEditor(Editor* editor)
     ASSERT(editor->game);
     if (!editor->paintMode)
     {
-        updateUI(&editor->ui);
+        //updateUI(editor->box);
     }
-    if (doButton(editor->buttonHandles[0], &editor->ui))
+    if (doButton(editor->buttonHandles[0], editor->box))
     {
         editor->selectedTile = NULL;
     }
     for (unsigned int i = 1; i < editor->buttonHandles.size; ++i)
     {
-        if (doButton(editor->buttonHandles[i], &editor->ui))
+        if (doButton(editor->buttonHandles[i], editor->box))
         {
             editor->selectedTile = editor->selectableTiles[i - 1];
         }
     }
-    if (!editor->ui.inFocus && !editor->ui.drag)
+    if (g_screenContext == CONTEXT_GAME || g_screenContext == CONTEXT_EVERYTHING)// && !editor->box->inFocus && !editor->box->drag)
     {
         editor->lastHotTileIndex = editor->hotTileIndex;
         //TODO: Check which tilemap the cursor is on
@@ -71,30 +68,30 @@ void updateEditor(Editor* editor)
         if (!tileMap) return;
         editor->hotTileIndex = tileMap->getTileIndexAt(g_projectedMousePos);
         bool setTile;
-        if (g_input.mouseLeftClicked
-            || (g_input.mouseLeftHeld && editor->hotTileIndex != editor->lastHotTileIndex))
+        if (editor->selectedTile && (g_input.mouseLeftClicked ||
+                                     (g_input.mouseLeftHeld && editor->hotTileIndex != editor->lastHotTileIndex)))
         {
+            //if (!(g_input.mouseLeftClicked && isCursorOnBox(editor->box)))
+            //{
             setTile = true;
             editor->paintMode = true;
+            //}
         }
         else
         {
             setTile = false;
         }
-        if (g_input.mouseLeftReleased && editor->paintMode)
+        if (g_input.mouseLeftReleased)
         {
             editor->paintMode = false;
         }
-        
-        {
-            if (setTile && editor->selectedTile)
-            {            
-                tileMap->setTile(editor->hotTileIndex.x, editor->hotTileIndex.y,
-                                              editor->selectedTile);
-            }
+        if (setTile)
+        {            
+            tileMap->setTile(editor->hotTileIndex.x, editor->hotTileIndex.y,
+                             editor->selectedTile);
         }
     }
-
+//    g_screenContext = (editor->paintMode) ? CONTEXT_GAME : CONTEXT_EVERYTHING;
 }
 
 void viewEditor(Editor* editor)
@@ -118,5 +115,5 @@ void viewEditor(Editor* editor)
         g_uiRenderer->submitSprite(&tileSprite,
                                    Mat3::translation(Vec2(0.7f, 0.3f)), g_view);
     }                            
-    drawUI(&editor->ui);        
+    //drawUI(&editor->box);        
 }

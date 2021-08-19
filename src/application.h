@@ -13,9 +13,9 @@ struct Application
     SDL_GLContext glContext;
     Game* game;
     Editor editor;
-    UI debugUI;
+    ButtonBox* debugBox;
+    UI ui;
     bool running;
-    bool viewDebugUI;
     bool displayMemoryInfo;
     bool displayTimerInfo;
     bool displayWorldInfo;

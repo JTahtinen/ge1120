@@ -20,12 +20,30 @@
 #include "ui/ui.h"
 #include "util/textparser.h"
 #include "game/conversation.h"
-
+#include "context.h"
 
 static void playground()
 {
 //    Conversation test;
 //    loadConversation("res/test.conv", &test);
+}
+
+static void determineScreenContext(Application* app)
+{
+    if (g_input.mouseLeftReleased)
+    {
+        g_screenContext = CONTEXT_EVERYTHING;
+        return;
+    }
+    if (g_input.mouseLeftClicked)
+    {
+        if (cursorOnUI(&app->ui))
+        {
+            g_screenContext = CONTEXT_UI;
+            return;
+        }
+        g_screenContext = CONTEXT_GAME;
+    }
 }
 
 
@@ -86,18 +104,17 @@ static void updateWindow(Application* app)
 
 static void updateGame(Application* app)
 {
-    static unsigned int debugToggleButton = createButton("Debug mode", &app->debugUI);
-    static unsigned int worldInfoButton = createButton("World info", &app->debugUI);
-    static unsigned int memoryInfoButton = createButton("Memory", &app->debugUI);
-    static unsigned int timerInfoButton = createButton("Timers", &app->debugUI);
-
+    static unsigned int debugToggleButton = createButton("Debug mode", app->debugBox);
+    static unsigned int worldInfoButton = createButton("World info", app->debugBox);
+    static unsigned int memoryInfoButton = createButton("Memory", app->debugBox);
+    static unsigned int timerInfoButton = createButton("Timers", app->debugBox);
+    static UI* selectedUI = NULL;
 
     static Mat3 cameraToScreen;
+
+    determineScreenContext(app);
+    updateUI(&app->ui);
     
-    if (app->viewDebugUI)
-    {
-        updateUI(&app->debugUI);
-    }
     if (app->editorMode)
     {
         updateEditor(&app->editor);
@@ -105,41 +122,48 @@ static void updateGame(Application* app)
 
     if (g_input.mouseRightClicked)
     {
-        setMouseState(!g_mouseState);
-        
+        setMouseState(!g_mouseState);        
     }
+    
     if (g_input.isKeyTyped(KEY_F1))
     {
-        app->viewDebugUI = !app->viewDebugUI;
+        //app->viewDebugUI = !app->viewDebugUI;
+        setButtonBoxActive(!app->debugBox->active, app->debugBox);
     }
     if (g_input.isKeyTyped(KEY_F2))
     {
         app->editorMode = !app->editorMode;
         if (app->editorMode) setMouseState(true);
+
+        setButtonBoxActive(app->editorMode, app->editor.box);
     }
 
-    if (doButton(debugToggleButton, &app->debugUI))
-    {
-        g_debugMode = !g_debugMode;
-    }
-    if (doButton(worldInfoButton, &app->debugUI))
-    {
-        app->displayWorldInfo = !app->displayWorldInfo;
-    }
-    if (doButton(memoryInfoButton, &app->debugUI))
-    {
-        app->displayMemoryInfo = !app->displayMemoryInfo;
-    }
-    if (doButton(timerInfoButton, &app->debugUI))
-    {
-        app->displayTimerInfo = !app->displayTimerInfo;
-    }
+    //   if (g_screenContext == CONTEXT_UI || g_screenContext == CONTEXT_EVERYTHING)
+    //{
+        if (doButton(debugToggleButton, app->debugBox))
+        {
+            g_debugMode = !g_debugMode;
+        }
+        if (doButton(worldInfoButton, app->debugBox))
+        {
+            app->displayWorldInfo = !app->displayWorldInfo;
+        }
+        if (doButton(memoryInfoButton, app->debugBox))
+        {
+            app->displayMemoryInfo = !app->displayMemoryInfo;
+        }
+        if (doButton(timerInfoButton, app->debugBox))
+        {
+            app->displayTimerInfo = !app->displayTimerInfo;
+        }
+//    }
 
+    
 
     app->game->update();
     app->game->render();
 
-    
+    if (g_input.mouseLeftReleased) g_screenContext = CONTEXT_EVERYTHING;
     if (g_mouseState)
     {
         g_uiRenderer->setView(Mat3::identity());
@@ -185,12 +209,28 @@ static void updateGame(Application* app)
         }
     }
 
+    String screenContextName;
+    switch (g_screenContext)
+    {
+        case CONTEXT_GAME:
+            screenContextName = "CONTEXT_GAME";
+            break;
+        case CONTEXT_UI:
+            screenContextName = "CONTEXT_UI";
+            break;
+        case CONTEXT_EVERYTHING:
+            screenContextName = "CONTEXT_EVERYTHING";
+            break;
+        default:
+            screenContextName = "CONTEXT_INVALID";
+    }
+    
+    g_uiRenderer->submitText(screenContextName,
+                              Vec2(-0.2f, -0.3f));
+    
   
 
-    if (app->viewDebugUI)
-    {
-        drawUI(&app->debugUI);
-    }
+    drawUI(&app->ui);
     if (app->editorMode)
     {
         viewEditor(&app->editor);
@@ -286,16 +326,20 @@ bool init(Application* app)
 
  
             g_uiRenderer->setView(g_view);
-
+            g_screenContext = CONTEXT_EVERYTHING;
 
             //message("%s\n", testString[4]);
             app->game = (Game*)g_memory.reserve(sizeof(Game));
             app->game->init();
-            initUI("DEBUG", &app->debugUI);            
+            initUI(&app->ui);
+            app->debugBox = createButtonBox("DEBUG", &app->ui);
+//            initUI("DEBUG", &app->debugBox);            
             
-            initEditor(&app->editor, app->game);
+            initEditor(&app->editor, app->game, &app->ui);
+            setButtonBoxActive(false, app->editor.box);
+            setButtonBoxActive(false, app->debugBox);
             app->frameTimer.start();
-            app->viewDebugUI = false;
+//            app->viewDebugUI = false;
             app->displayMemoryInfo = false;
             app->displayTimerInfo = false;
             app->displayWorldInfo = false;

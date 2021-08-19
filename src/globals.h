@@ -67,5 +67,7 @@ extern Vec2 g_projectedMousePos;
 
 extern Mat3 g_view;
 
+extern unsigned int g_screenContext;
+
 extern bool initGlobals();
 extern void deleteGlobals();

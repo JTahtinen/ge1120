@@ -1,229 +1,92 @@
 #include "ui.h"
 #include "../defs.h"
-#include "../globals.h"
-#include "../math/math.h"
-#include "../graphics/renderer.h"
+#include "../context.h"
 
-static Vec4 buttonIdleColor(0.55f, 0.6f, 0.1f, 1.0f);
-static Vec4 buttonHotColor(0.7f, 0.8f, 0.2f, 1.0f);
-static Vec4 buttonActiveColor(1, 1, 1, 1);
-static Vec4 headerIdleColor(0.5f, 0, 0, 0.5f);
-static Vec4 headerHotColor(1.0f, 0, 0, 0.5f);
-static Vec4 backgroundColor(0, 0, 0, 0.5f);
-static float backgroundW = 0.25f;
-static float buttonH = 0.04f;
-static float headerH = 0.06f;
-static float buttonXMargin = 0.01f;
-static float buttonYMargin = 0.01f;
-    
-unsigned int createButton(const String& text, UI* ui)
+static unsigned int nextID;
+
+void initUI(UI* ui)
 {
-    ui->buttons.push_back({});
-    Button* button = &ui->buttons.back();
-    button->id = ui->nextID++;
-    button->text = text;
-    button->hot = false;
-    button->active = false;
-    unsigned int numButtons = ui->buttons.size;
-    ui->dimensions.y += buttonH + buttonYMargin;
-
-    
-    return button->id;
-}
-
-Vec2 getButtonScreenPos(unsigned int buttonID, UI* ui)
-{
-    for (unsigned int i = 0; i < ui->buttons.size; ++i)
+    if (!ui)
     {
-        if (ui->buttons[i].id == buttonID)
-        {
-            return
-                ui->screenPos +
-                Vec2(buttonXMargin,
-                     -headerH + ( -buttonYMargin - i * buttonH - i * buttonYMargin));
-        }
+        err("Could not init UI. Pointer was NULL!\n");
     }
-    warn("Tried to find position for button that does not exist - ID: %d\n", buttonID);
-    return Vec2();
+    ui->nextID = 1;
+    ui->buttonBoxes.reserve(10);
+    ui->currentElementIndex = -1;
 }
 
-static bool cursorOnElement(Button* button, UI* ui)
+ButtonBox* createButtonBox(const String& title, UI* ui)
 {
-    Vec2 pos = getButtonScreenPos(button->id, ui);
+    if (!ui) return 0;
 
-    bool result = vec2WithinRect(g_mousePos, pos + Vec2(backgroundW - buttonXMargin, -buttonH), pos);
-    return result;        
-}
-
-bool doButton(unsigned int buttonID, UI* ui)
-{
-    Button* button = NULL;
-    for (unsigned int i = 0; i < ui->buttons.size; ++i)
-    {
-        if (ui->buttons[i].id == buttonID)
-        {
-            button = &ui->buttons[i];
-            break;
-        }
-    }
-    if (!button)
-    {
-        warn("Tried to poll button that does not exist - ID: %d\n", buttonID);
-        return false;
-    }
-    if (button->active)
-    {
-        if (cursorOnElement(button, ui))
-        {
-            if (g_input.mouseLeftReleased)
-            {        
-                button->active = false;
-                return true;
-            }
-            return false;
-        }
-        button->active = false;
-        return false;
-    }
-    return false;
-}
-
-static void updateButton(Button* button, UI* ui)
-{
-    if (g_mouseState)
-    {        
-        if (cursorOnElement(button, ui))
-        {            
-            button->hot = true;            
-            if (g_input.mouseLeftClicked)
-            {
-                button->active = true;
-            }
-        }
-        else
-        {
-            if (!button->active)
-            {
-                button->hot = false;
-            }
-        }
-    }
-}
-
-bool initUI(const String& title, UI* ui)
-{
-    ui->buttons.init(10);
-    ui->title = title;
-    ui->screenPos = Vec2(-0.3f, 0.3f);
-    ui->nextID = 0;
-    ui->drag = false;
-    ui->currentHeaderColor = &headerIdleColor;
-    ui->inFocus = false;
-    ui->dimensions = Vec2(backgroundW, headerH + buttonYMargin);
-    return true;
+    unsigned int id = ui->nextID++;
+    ui->buttonBoxes.push_back({});
+    ButtonBox& box = ui->buttonBoxes.back();
+    initButtonBox(title, id, &box);
+    return &box;
 }
 
 void updateUI(UI* ui)
 {
-   
-    if (g_mouseState)
+    if (!ui) return;
+
+    ButtonBox* selectedBox = NULL; 
+    if (ui->currentElementIndex > -1)
     {
-         
-        if (vec2WithinRect(g_mousePos, ui->screenPos + Vec2(ui->dimensions.x, -headerH),
-                           ui->screenPos))
+        selectedBox = &ui->buttonBoxes[ui->currentElementIndex];        
+    }
+    if (!selectedBox || (!selectedBox->drag && !isCursorOnBox(selectedBox)))
+    {
+        for (int i = ui->buttonBoxes.size - 1; i >= 0; --i)
         {
-            ui->currentHeaderColor = &headerHotColor;
-            if (g_input.mouseLeftClicked)
+            ButtonBox& box = ui->buttonBoxes[i];
+            if (box.active && isCursorOnBox(&box))
             {
-                ui->drag = true;
-                ui->dragPoint = g_mousePos - ui->screenPos;
+                ui->currentElementIndex = i;
+                selectedBox = &box;
+                break;
             }
         }
-        else if (!ui->drag)
-        {
-            ui->currentHeaderColor = &headerIdleColor;
-        }
-
-        ui->inFocus = vec2WithinRect(g_mousePos,
-                                     ui->screenPos + Vec2(ui->dimensions.x, -ui->dimensions.y),
-                                     ui->screenPos);
-        
-        if (ui->drag && g_input.mouseLeftReleased)
-        {
-            ui->drag = false;
-        }
-
-        if (ui->drag)
-        {
-            ui->screenPos = g_mousePos - ui->dragPoint;
-        }
-            
-    }                
-            
-             
-    for (unsigned int i = 0; i < ui->buttons.size; ++i)
+    }
+    if (selectedBox)
     {
-        Button* button = &ui->buttons[i];
-        updateButton(button, ui);
-    } 
-            
+        //if (isCursorOnBox(selectedBox) && g_input.mouseLeftClicked)
+        //{
+        //    g_screenContext = CONTEXT_UI;
+        //}
+        
+        if (selectedBox->active && (g_screenContext == CONTEXT_UI || g_screenContext == CONTEXT_EVERYTHING))
+        {
+            updateButtonBox(selectedBox);
+        }        
+    }
 }
-    
+
 void drawUI(UI* ui)
 {
-    g_uiRenderer->setView(g_view);
-
-    static Quad buttonQuad(0, 0,
-                           0, 0 - buttonH,
-                           backgroundW - buttonXMargin * 2, -buttonH,
-                           backgroundW - buttonXMargin * 2, 0);
+    if (!ui) return;
     
-    static Quad headerQuad(0, 0,
-                           0, -headerH,
-                           backgroundW, -headerH,
-                           backgroundW, 0);
-
-    float currentRelativePos = 0;
-    float backgroundH = ui->dimensions.y - headerH;
-    unsigned int numButtons = ui->buttons.size;
-    Quad background(0, 0,
-                    0, -backgroundH,
-                    ui->dimensions.x, -backgroundH,
-                    ui->dimensions.x, 0);
-    g_uiRenderer->submitQuad(headerQuad,
-                             ui->screenPos + Vec2(0, currentRelativePos),
-                           *ui->currentHeaderColor);
-    float titleWidth = calculateStringWidth(ui->title, g_arialFont);
-    float titlePos = (backgroundW * 0.5f) - (titleWidth * 0.5f);
-    g_uiRenderer->submitText(ui->title,
-                           ui->screenPos + Vec2(titlePos, - headerH + headerH * 0.3f)
-                           , 0.2f);
-    currentRelativePos += (-headerH);
-    g_uiRenderer->submitQuad(background,
-                             ui->screenPos + Vec2(0, currentRelativePos),
-                           backgroundColor);
-
-    for (unsigned int i = 0; i < numButtons; ++i)
+    for (int i = 0; i < ui->buttonBoxes.size; ++i)
     {
-        Button* button = &ui->buttons[i];
-        Vec4* buttonColor;
-        if (button->active)
+        if (i == ui->currentElementIndex) continue;
+        ButtonBox& box = ui->buttonBoxes[i];       
+        drawButtonBox(&box);
+    }
+    if (ui->currentElementIndex > -1)
+    {
+        drawButtonBox(&ui->buttonBoxes[ui->currentElementIndex]);
+    }
+}
+
+bool cursorOnUI(UI* ui)
+{
+    if (!ui) return false;
+    for (unsigned int i = 0; i < ui->buttonBoxes.size; ++i)
+    {
+        if (isCursorOnBox(&ui->buttonBoxes[i]))
         {
-            buttonColor = &buttonActiveColor;
-        }
-        else if (button->hot)
-        {
-            buttonColor = &buttonHotColor;
-        }
-        else 
-        {
-            buttonColor = &buttonIdleColor;
-        }
-        Vec2 pos = getButtonScreenPos(button->id, ui);
-        g_uiRenderer->submitQuad(buttonQuad, pos, *buttonColor);
-        if (button->text.size > 0)
-        {
-            g_uiRenderer->submitText(button->text, pos + Vec2(.01f, -buttonH + buttonH * 0.2f), 0.2f);
+            return true;
         }
     }
+    return false;
 }

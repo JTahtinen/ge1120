@@ -4,10 +4,11 @@
 #include "../util/vector.h"
 #include "game.h"
 #include "../math/math.h"
+
 struct Editor
 {
     Game* game;
-    UI ui;
+    ButtonBox* box;
     Vector<unsigned int> buttonHandles;
     Vector<Tile*> selectableTiles;
     Tile* selectedTile;
@@ -16,6 +17,6 @@ struct Editor
     bool paintMode;
 };
 
-bool initEditor(Editor* editor, Game* game);
+bool initEditor(Editor* editor, Game* game, UI* ui);
 void updateEditor(Editor* editor);
 void viewEditor(Editor* editor);

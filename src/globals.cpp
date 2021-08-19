@@ -5,7 +5,7 @@
 #include "graphics/renderer.h"
 #include "graphics/font.h"
 #include "game/tile.h"
-
+#include "application.h"
 Memory g_memory;
 
 bool g_mouseState;
@@ -55,6 +55,8 @@ Font*        g_arialFont;
 float g_frameTime;
 
 float g_aspect;
+
+unsigned int g_screenContext;
 
 #define INIT(name, type, args) (name) = (new type(args))
 
